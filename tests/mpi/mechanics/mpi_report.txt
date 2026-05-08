@@ -1,5 +1,0 @@
-FAIL
-First failing iteration: 1
-Failing cell IDs: [3]
-Iteration 1, cell 3: position_error=1.123109e-01, velocity_error=0.000000e+00
-Worst errors so far: position=1.123109e-01, velocity=0.000000e+00

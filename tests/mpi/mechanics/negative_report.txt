@@ -1,4 +1,0 @@
-FAIL
-First failing iteration: 0
-Failing cell IDs: [1]
-Iteration 0, cell 1: neighbor mismatch reference=(2,) mpi=(99,)
