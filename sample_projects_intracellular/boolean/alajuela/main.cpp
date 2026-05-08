@@ -102,12 +102,12 @@ int main( int argc, char* argv[] )
 	char copy_command [1024]; 
 	if( argc > 1 )
 	{
-		XML_status = load_PhysiCell_config_file( argv[1] ); 
+		XML_status = load_PhysiCell_config_file( argv[1] , world ); 
 		sprintf( copy_command , "cp %s %s/PhysiCell_settings.xml" , argv[1] , PhysiCell_settings.folder.c_str() ); 
 	}
 	else
 	{
-		XML_status = load_PhysiCell_config_file( "./config/PhysiCell_settings.xml" );
+		XML_status = load_PhysiCell_config_file( "./config/PhysiCell_settings.xml" , world );
 		sprintf( copy_command , "cp ./config/PhysiCell_settings.xml %s" , PhysiCell_settings.folder.c_str() ); 
 	}
 	if( !XML_status )
@@ -128,7 +128,25 @@ int main( int argc, char* argv[] )
 	setup_microenvironment(world, cart_topo); // modify this in the custom code 
 	
 	double time_remove_o2 = parameters.doubles("time_remove_o2");
-	bool done = false; 
+	bool o2_removed = false;
+
+	#ifdef DEBUG
+	double diagnostics_window_start = 600.0;
+	double diagnostics_window_stop = 1200.0;
+	double diagnostics_interval = 10.0;
+	if( parameters.doubles.find_index( "instrumentation_window_start" ) != -1 )
+	{ diagnostics_window_start = parameters.doubles( "instrumentation_window_start" ); }
+	if( parameters.doubles.find_index( "instrumentation_window_stop" ) != -1 )
+	{ diagnostics_window_stop = parameters.doubles( "instrumentation_window_stop" ); }
+	if( parameters.doubles.find_index( "instrumentation_interval" ) != -1 )
+	{ diagnostics_interval = parameters.doubles( "instrumentation_interval" ); }
+	if( diagnostics_window_stop < diagnostics_window_start )
+	{ std::swap( diagnostics_window_start , diagnostics_window_stop ); }
+	if( diagnostics_interval <= 0.0 )
+	{ diagnostics_interval = 10.0; }
+	double next_diagnostics_time = diagnostics_window_start;
+	
+	#endif 
 
 	
 	/* PhysiCell setup */ 
@@ -187,6 +205,7 @@ int main( int argc, char* argv[] )
 	BioFVM::TIC();
 	
 	std::ofstream report_file;
+	std::ofstream diagnostics_file;
 	if( PhysiCell_settings.enable_legacy_saves == true )
 	{	
 		sprintf( filename , "%s/simulation_report.txt" , PhysiCell_settings.folder.c_str() ); 
@@ -196,6 +215,15 @@ int main( int argc, char* argv[] )
 		}
 		
 	}
+
+	#ifdef DEBUG
+	sprintf( filename , "%s/pressure_oxygen_window.tsv" , PhysiCell_settings.folder.c_str() );
+	if( IOProcessor( world ) )
+	{
+		diagnostics_file.open( filename );
+		write_pressure_oxygen_diagnostics_header( diagnostics_file );
+	}
+	#endif
 	
 	// main loop 
 	
@@ -248,10 +276,10 @@ int main( int argc, char* argv[] )
 			
 			drug_transport_model_main( diffusion_dt ); //no mpi needed
 			
-			if (PhysiCell_globals.current_time >= time_remove_o2 && !done)
+			if (PhysiCell_globals.current_time >= time_remove_o2 && !o2_removed)
 			{
-    				change_dirichlet_nodes(); //mpi needed
-   				done = true;
+    				change_dirichlet_nodes( world ); //mpi needed
+   				o2_removed = true;
 			}
 			
 			
@@ -263,6 +291,20 @@ int main( int argc, char* argv[] )
 			*/
 			
 			PhysiCell_globals.current_time += diffusion_dt;
+			#ifdef DEBUG
+			if( PhysiCell_globals.current_time + 1e-9 >= next_diagnostics_time &&
+				PhysiCell_globals.current_time <= diagnostics_window_stop + 1e-9 )
+			{
+				write_pressure_oxygen_diagnostics_row( PhysiCell_globals.current_time , diagnostics_file, world, cart_topo );
+
+				do
+				{
+					next_diagnostics_time += diagnostics_interval;
+				}
+				while( PhysiCell_globals.current_time + 1e-9 >= next_diagnostics_time &&
+					   next_diagnostics_time <= diagnostics_window_stop + 1e-9 );
+			}
+			#endif
 		}
 		
 		if( PhysiCell_settings.enable_legacy_saves == true )
@@ -270,6 +312,8 @@ int main( int argc, char* argv[] )
 			log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);
 			report_file.close();
 		}
+		if( diagnostics_file.is_open() )
+		{ diagnostics_file.close(); }
 	}
 	catch( const std::exception& e )
 	{ // reference to the base of a polymorphic object
