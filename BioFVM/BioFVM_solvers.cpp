@@ -95,10 +95,218 @@ void diffusion_decay_solver__constant_coefficients_explicit_uniform_mesh( Microe
 	return; 
 }
 
-void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, double dt ) {
-    std::cout << "Diffusion decay solver constant coefficients LOD 3D single node desactivated!" << std::endl;
-    return;
+void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, double dt )
+{
+	if( M.mesh.regular_mesh == false || M.mesh.Cartesian_mesh == false )
+	{
+		std::cout << "Error: This algorithm is written for regular Cartesian meshes. Try: other solvers!" << std::endl << std::endl; 
+		return; 
+	}
+
+	if( !M.diffusion_solver_setup_done )
+	{
+		std::cout << std::endl << "Using method " << __FUNCTION__ << " (implicit 3-D LOD with Thomas Algorithm) ... "
+		<< std::endl << std::endl;  
+
+		M.n_subs = M.number_of_densities(); 
+
+		M.thomas_denomx.resize( M.mesh.x_coordinates.size() , M.zero );
+		M.thomas_cx.resize( M.mesh.x_coordinates.size() , M.zero );
+
+		M.thomas_denomy.resize( M.mesh.y_coordinates.size() , M.zero );
+		M.thomas_cy.resize( M.mesh.y_coordinates.size() , M.zero );
+
+		M.thomas_denomz.resize( M.mesh.z_coordinates.size() , M.zero );
+		M.thomas_cz.resize( M.mesh.z_coordinates.size() , M.zero );
+
+		M.thomas_i_jump = M.mesh.y_coordinates.size() * M.mesh.z_coordinates.size() * M.n_subs; 
+		M.thomas_j_jump = M.mesh.z_coordinates.size() * M.n_subs; 
+		M.thomas_k_jump = M.n_subs; 
+
+		M.thomas_constant1 = M.diffusion_coefficients; // dt*D/dx^2 
+		M.thomas_constant1a = M.zero; // -dt*D/dx^2; 
+		M.thomas_constant2 = M.decay_rates; // (1/3)*dt*lambda 
+		M.thomas_constant3 = M.one; // 1 + 2*constant1 + constant2; 
+		M.thomas_constant3a = M.one; // 1 + constant1 + constant2; 
+
+		M.thomas_constant1 *= dt; 
+		M.thomas_constant1 /= M.mesh.dx; 
+		M.thomas_constant1 /= M.mesh.dx; 
+
+		M.thomas_constant1a = M.thomas_constant1; 
+		M.thomas_constant1a *= -1.0; 
+
+		M.thomas_constant2 *= dt; 
+		M.thomas_constant2 /= 3.0; // for the LOD splitting of the source 
+
+		M.thomas_constant3 += M.thomas_constant1; 
+		M.thomas_constant3 += M.thomas_constant1; 
+		M.thomas_constant3 += M.thomas_constant2; 
+
+		M.thomas_constant3a += M.thomas_constant1; 
+		M.thomas_constant3a += M.thomas_constant2; 
+
+		M.thomas_cx.assign( M.mesh.x_coordinates.size() , M.thomas_constant1a ); 
+		M.thomas_denomx.assign( M.mesh.x_coordinates.size() , M.thomas_constant3 ); 
+		M.thomas_denomx[0] = M.thomas_constant3a; 
+		M.thomas_denomx[ M.mesh.x_coordinates.size()-1 ] = M.thomas_constant3a; 
+		if( M.mesh.x_coordinates.size() == 1 )
+		{ M.thomas_denomx[0] = M.one; M.thomas_denomx[0] += M.thomas_constant2; } 
+
+		M.thomas_cx[0] /= M.thomas_denomx[0]; 
+		for( unsigned int i=1 ; i < M.mesh.x_coordinates.size() ; i++ )
+		{
+			axpy( &M.thomas_denomx[i] , M.thomas_constant1 , M.thomas_cx[i-1] ); 
+			M.thomas_cx[i] /= M.thomas_denomx[i]; 
+		}
+
+		M.thomas_cy.assign( M.mesh.y_coordinates.size() , M.thomas_constant1a ); 
+		M.thomas_denomy.assign( M.mesh.y_coordinates.size() , M.thomas_constant3 ); 
+		M.thomas_denomy[0] = M.thomas_constant3a; 
+		M.thomas_denomy[ M.mesh.y_coordinates.size()-1 ] = M.thomas_constant3a; 
+		if( M.mesh.y_coordinates.size() == 1 )
+		{ M.thomas_denomy[0] = M.one; M.thomas_denomy[0] += M.thomas_constant2; } 
+
+		M.thomas_cy[0] /= M.thomas_denomy[0]; 
+		for( unsigned int j=1 ; j < M.mesh.y_coordinates.size() ; j++ )
+		{
+			axpy( &M.thomas_denomy[j] , M.thomas_constant1 , M.thomas_cy[j-1] ); 
+			M.thomas_cy[j] /= M.thomas_denomy[j]; 
+		}
+
+		M.thomas_cz.assign( M.mesh.z_coordinates.size() , M.thomas_constant1a ); 
+		M.thomas_denomz.assign( M.mesh.z_coordinates.size() , M.thomas_constant3 ); 
+		M.thomas_denomz[0] = M.thomas_constant3a; 
+		M.thomas_denomz[ M.mesh.z_coordinates.size()-1 ] = M.thomas_constant3a; 
+		if( M.mesh.z_coordinates.size() == 1 )
+		{ M.thomas_denomz[0] = M.one; M.thomas_denomz[0] += M.thomas_constant2; } 
+
+		M.thomas_cz[0] /= M.thomas_denomz[0]; 
+		for( unsigned int k=1 ; k < M.mesh.z_coordinates.size() ; k++ )
+		{
+			axpy( &M.thomas_denomz[k] , M.thomas_constant1 , M.thomas_cz[k-1] ); 
+			M.thomas_cz[k] /= M.thomas_denomz[k]; 
+		}
+
+		M.diffusion_solver_setup_done = true; 
+	}
+
+	M.apply_dirichlet_conditions_fast();
+
+	#pragma omp parallel for 
+	for( unsigned int k=0; k < M.mesh.z_coordinates.size() ; k++ )
+	{
+		for( unsigned int j=0; j < M.mesh.y_coordinates.size() ; j++ )
+		{
+			unsigned int n = M.voxel_index(0,j,k) * M.n_subs; 
+			for( int d=0; d < M.n_subs; d++ )
+			{ (*M.p_density_vectors)[n+d] /= M.thomas_denomx[0][d]; }
+
+			n += M.thomas_i_jump; 
+			for( unsigned int i=1; i < M.mesh.x_coordinates.size() ; i++ )
+			{
+				for( int d=0; d < M.n_subs; d++ )
+				{ (*M.p_density_vectors)[n+d] += M.thomas_constant1[d] * (*M.p_density_vectors)[n-M.thomas_i_jump+d]; }
+
+				for( int d=0; d < M.n_subs; d++ )
+				{ (*M.p_density_vectors)[n+d] /= M.thomas_denomx[i][d]; }
+
+				n += M.thomas_i_jump; 
+			}
+
+			if( M.mesh.x_coordinates.size() > 1 )
+			{
+				n = M.voxel_index( static_cast<int>( M.mesh.x_coordinates.size() )-2 , j , k ) * M.n_subs; 
+				for( int i = static_cast<int>( M.mesh.x_coordinates.size() )-2 ; i >= 0 ; i-- )
+				{
+					for( int d=0; d < M.n_subs; d++ )
+					{ (*M.p_density_vectors)[n+d] -= M.thomas_cx[i][d] * (*M.p_density_vectors)[n+M.thomas_i_jump+d]; }
+
+					n -= M.thomas_i_jump; 
+				}
+			}
+		}
+	}
+
+	M.apply_dirichlet_conditions_fast();
+
+	#pragma omp parallel for 
+	for( unsigned int k=0; k < M.mesh.z_coordinates.size() ; k++ )
+	{
+		for( unsigned int i=0; i < M.mesh.x_coordinates.size() ; i++ )
+		{
+			unsigned int n = M.voxel_index(i,0,k) * M.n_subs; 
+			for( int d=0; d < M.n_subs; d++ )
+			{ (*M.p_density_vectors)[n+d] /= M.thomas_denomy[0][d]; }
+
+			n += M.thomas_j_jump; 
+			for( unsigned int j=1; j < M.mesh.y_coordinates.size() ; j++ )
+			{
+				for( int d=0; d < M.n_subs; d++ )
+				{ (*M.p_density_vectors)[n+d] += M.thomas_constant1[d] * (*M.p_density_vectors)[n-M.thomas_j_jump+d]; }
+
+				for( int d=0; d < M.n_subs; d++ )
+				{ (*M.p_density_vectors)[n+d] /= M.thomas_denomy[j][d]; }
+
+				n += M.thomas_j_jump; 
+			}
+
+			if( M.mesh.y_coordinates.size() > 1 )
+			{
+				n = M.voxel_index( i , static_cast<int>( M.mesh.y_coordinates.size() )-2 , k ) * M.n_subs; 
+				for( int j = static_cast<int>( M.mesh.y_coordinates.size() )-2 ; j >= 0 ; j-- )
+				{
+					for( int d=0; d < M.n_subs; d++ )
+					{ (*M.p_density_vectors)[n+d] -= M.thomas_cy[j][d] * (*M.p_density_vectors)[n+M.thomas_j_jump+d]; }
+
+					n -= M.thomas_j_jump; 
+				}
+			}
+		}
+	}
+
+	M.apply_dirichlet_conditions_fast();
+
+	#pragma omp parallel for 
+	for( unsigned int j=0; j < M.mesh.y_coordinates.size() ; j++ )
+	{
+		for( unsigned int i=0; i < M.mesh.x_coordinates.size() ; i++ )
+		{
+			unsigned int n = M.voxel_index(i,j,0) * M.n_subs; 
+			for( int d=0; d < M.n_subs; d++ )
+			{ (*M.p_density_vectors)[n+d] /= M.thomas_denomz[0][d]; }
+
+			n += M.thomas_k_jump; 
+			for( unsigned int k=1; k < M.mesh.z_coordinates.size() ; k++ )
+			{
+				for( int d=0; d < M.n_subs; d++ )
+				{ (*M.p_density_vectors)[n+d] += M.thomas_constant1[d] * (*M.p_density_vectors)[n-M.thomas_k_jump+d]; }
+
+				for( int d=0; d < M.n_subs; d++ )
+				{ (*M.p_density_vectors)[n+d] /= M.thomas_denomz[k][d]; }
+
+				n += M.thomas_k_jump; 
+			}
+
+			if( M.mesh.z_coordinates.size() > 1 )
+			{
+				n = M.voxel_index( i , j , static_cast<int>( M.mesh.z_coordinates.size() )-2 ) * M.n_subs; 
+				for( int k = static_cast<int>( M.mesh.z_coordinates.size() )-2 ; k >= 0 ; k-- )
+				{
+					for( int d=0; d < M.n_subs; d++ )
+					{ (*M.p_density_vectors)[n+d] -= M.thomas_cz[k][d] * (*M.p_density_vectors)[n+M.thomas_k_jump+d]; }
+
+					n -= M.thomas_k_jump; 
+				}
+			}
+		}
+	}
+
+	M.apply_dirichlet_conditions_fast();
+
+	return; 
 }
+
 void diffusion_decay_solver__constant_coefficients_LOD_3D_BLOCKING(Microenvironment &M, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
         
@@ -1748,7 +1956,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, 
 
 	// set the pointer
 	
-	M.apply_dirichlet_conditions();
+	M.apply_dirichlet_conditions_fast();
 
 	// x-diffusion 
 	#pragma omp parallel for 
@@ -1788,7 +1996,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, 
 
 	// y-diffusion 
 
-	M.apply_dirichlet_conditions();
+	M.apply_dirichlet_conditions_fast();
 	#pragma omp parallel for 
 	for( unsigned int i=0; i < M.mesh.x_coordinates.size() ; i++ )
 	{
@@ -1823,7 +2031,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, 
 		}
 	}
 
-	M.apply_dirichlet_conditions();
+	M.apply_dirichlet_conditions_fast();
 	
 	// reset gradient vectors 
 //	M.reset_all_gradient_vectors(); 
@@ -1978,7 +2186,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_1D( Microenvironment& M, 
 
 	// set the pointer
 	
-	M.apply_dirichlet_conditions();
+	M.apply_dirichlet_conditions_fast();
 
 	// x-diffusion 
 	#pragma omp parallel for 
@@ -2015,7 +2223,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_1D( Microenvironment& M, 
 		}
 	}
 
-	M.apply_dirichlet_conditions();
+	M.apply_dirichlet_conditions_fast();
 	
 	// reset gradient vectors 
 //	M.reset_all_gradient_vectors(); 

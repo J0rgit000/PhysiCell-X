@@ -12,7 +12,8 @@ namespace DistPhy
     {
         void mpi_Environment::Initialize()
         {
-            int req_thread_level = MPI_THREAD_FUNNELED; //MPI_THREAD_MULTIPLE;
+            //int req_thread_level = MPI_THREAD_FUNNELED; 
+            int req_thread_level = MPI_THREAD_MULTIPLE;
             int provided_thread_level; 
             
             

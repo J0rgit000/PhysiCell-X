@@ -65,26 +65,17 @@ void update_boolean_model_inputs( Cell* pCell, Phenotype& phenotype, double dt )
 void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt)
 {	
 
-<<<<<<< HEAD
     
-=======
-    static int nTNF_external = microenvironment.find_density_index( "tnf" );      
-    static int nTNF_export_rate = pCell->custom_data.find_variable_index( "TNF_net_production_rate" );
-    static int death_decay_idx = pCell->custom_data.find_variable_index( "death_commitment_decay" );
->>>>>>> master
     static int necrosis_index = phenotype.death.find_death_model_index( PhysiCell_constants::necrosis_death_model ); 
     static int apoptosis_index = phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model );
     static int cycle_start_index = live.find_phase_index( PhysiCell_constants::live ); 
     static int cycle_end_index = live.find_phase_index( PhysiCell_constants::live );  
 
-<<<<<<< HEAD
     static int nTNF_external = microenvironment.find_density_index( "tnf" );      
     static int nTNF_export_rate = pCell->custom_data.find_variable_index( "TNF_net_production_rate" );
     static int death_decay_idx = pCell->custom_data.find_variable_index( "death_commitment_decay" );
 
 
-=======
->>>>>>> master
     static float necrosis_rate = pCell->custom_data["necrosis_rate"];
     static float apoptosis_rate = pCell->custom_data["apoptosis_rate"];
     static float death_commitment_decay = pCell->custom_data["death_decay_idx"];
@@ -99,14 +90,9 @@ void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt
     if ( apoptosis ) {
         // pCell->start_death(apoptosis_index);
         phenotype.death.rates[apoptosis_index] = apoptosis_rate;
-<<<<<<< HEAD
-	} else {
-        phenotype.death.rates[apoptosis_index] -= apoptosis_rate * death_commitment_decay;
-=======
 		return;
 	} else {
         phenotype.death.rates[apoptosis_index] -= phenotype.death.rates[apoptosis_index] * death_commitment_decay;
->>>>>>> master
         if (phenotype.death.rates[apoptosis_index] < 0)
             phenotype.death.rates[apoptosis_index] = 0;
     }
@@ -114,16 +100,10 @@ void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt
     if ( nonACD ) {
         // pCell->start_death(necrosis_index);
         phenotype.death.rates[necrosis_index] = necrosis_rate;
-<<<<<<< HEAD
-	}
-    else {
-        phenotype.death.rates[necrosis_index] -= necrosis_rate * death_commitment_decay;
-=======
 		return;
 	}
     else {
         phenotype.death.rates[necrosis_index] -= phenotype.death.rates[necrosis_index] * death_commitment_decay;
->>>>>>> master
         if (phenotype.death.rates[necrosis_index] < 0)
             phenotype.death.rates[necrosis_index] = 0;
     } 
@@ -164,7 +144,6 @@ void update_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double d
 		// Run maboss to update the boolean state of the cell
         pCell->phenotype.intracellular->update();
         
-<<<<<<< HEAD
         MaBoSSIntracellular* physiboss = static_cast<MaBoSSIntracellular*> (pCell->phenotype.intracellular);
 
         //next_physiboss_run
@@ -175,10 +154,6 @@ void update_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double d
 
         // update the cell fate based on the boolean outputs
         update_cell_from_boolean_model(pCell, phenotype, dt);	
-=======
-		// update the cell fate based on the boolean outputs
-        update_cell_from_boolean_model(pCell, phenotype, dt);
->>>>>>> master
 
         // Get track of some boolean node values for debugging
         update_monitor_variables(pCell);
@@ -187,7 +162,6 @@ void update_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double d
     return;
 }
 
-<<<<<<< HEAD
 
 void update_behaviors(Cell* pCell, Phenotype& phenotype, double dt) 
 {
@@ -196,13 +170,6 @@ void update_behaviors(Cell* pCell, Phenotype& phenotype, double dt)
 
         // Get track of some boolean node values for debugging
         update_monitor_variables(pCell);
-}
-=======
-// Parallel version of the above function
-void update_phenotype_with_signaling(Cell *pCell, Phenotype &phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo)
-{
-    update_phenotype_with_signaling(pCell, phenotype, dt);
-    return;
 }
 
 void update_monitor_variables(Cell* pCell )
@@ -217,4 +184,3 @@ void update_monitor_variables(Cell* pCell )
 
     return;
 }
->>>>>>> master

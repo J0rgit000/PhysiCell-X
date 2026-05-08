@@ -1,0 +1,5 @@
+PASS
+Iterations compared: 101
+Cells per iteration: 6
+Worst position error: 0.000000e+00
+Worst velocity error: 0.000000e+00

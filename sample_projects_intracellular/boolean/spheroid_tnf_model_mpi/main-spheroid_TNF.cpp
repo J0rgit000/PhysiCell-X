@@ -158,21 +158,8 @@ int main( int argc, char* argv[] )
 	/*========================*/
 	/* Microenvironment setup */
 	/*========================*/
-<<<<<<< HEAD
 		
 	setup_microenvironment(world, cart_topo);  
-	
-	//User parameters
-
-	double tnf_pulse_period = parameters.doubles("tnf_pulse_period");
-	double tnf_pulse_duration = parameters.doubles("tnf_pulse_duration");
-	double tnf_pulse_concentration = parameters.doubles("tnf_pulse_concentration");
-	double time_remove_tnf = parameters.doubles("time_remove_tnf");
-	double membrane_lenght = parameters.doubles("membrane_length");
-	
-	
-	double tnf_pulse_timer = tnf_pulse_period;
-	double tnf_pulse_injection_timer = tnf_pulse_duration * 0.5; // tnf_pulse_duration; // -1;
 
 	double tnf_pulse_period = parameters.doubles("tnf_pulse_period");
 	double tnf_pulse_duration = parameters.doubles("tnf_pulse_duration");
@@ -195,10 +182,7 @@ int main( int argc, char* argv[] )
 		// inject_density_sphere(tnf_idx, concentration_tnf, membrane_lenght, world, cart_topo);
 		for ( int i = 0; i < 25; i ++ )
 			microenvironment.simulate_diffusion_decay( diffusion_dt, world, cart_topo );
-	}*/
-=======
-	setup_microenvironment(world, cart_topo);  	
->>>>>>> master
+	}*/	
 
 	/*=============================*/	
 	/* PhysiCell/PhysiCell-X setup */ 
@@ -209,18 +193,11 @@ int main( int argc, char* argv[] )
 	
 	// Calling the parallel version of Cell Container creation 
 	Cell_Container* cell_container = create_cell_container_for_microenvironment( microenvironment, mechanics_voxel_size, world, cart_topo );
-<<<<<<< HEAD
-	std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;
+
 	std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;
 	//----> Users typically start modifying here. START USERMODS 
 	
 	create_cell_types( world, cart_topo );
-	create_cell_types( world, cart_topo );
-=======
-	
-	// Create cell definitions for each cell type
-	create_cell_types();
->>>>>>> master
 	
 	//Calling the parallel version of setup_tissue(...) 
 	setup_tissue(microenvironment, world, cart_topo);
@@ -327,16 +304,10 @@ int main( int argc, char* argv[] )
 				{	
 					sprintf( filename , "%s/output%08u" , PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index ); 
 					
-<<<<<<< HEAD
-					//Use parallel version of function 
-					//save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
-					
-=======
 					// Use parallel version of function 
 					save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
 					// Use serial version
 					// save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time);
->>>>>>> master
 				}
 				
 				PhysiCell_globals.full_output_index++; 
@@ -361,13 +332,10 @@ int main( int argc, char* argv[] )
 			  Custom add-ons could potentially go here. 
 			*/			
 			if ( PhysiCell_globals.current_time >= tnf_pulse_timer )
-<<<<<<< HEAD
 			/*
 			  Custom add-ons could potentially go here. 
 			*/			
 			if ( PhysiCell_globals.current_time >= tnf_pulse_timer )
-=======
->>>>>>> master
 			{
 				tnf_pulse_injection_timer = PhysiCell_globals.current_time + tnf_pulse_duration;
 				tnf_pulse_timer += tnf_pulse_period;
@@ -375,21 +343,13 @@ int main( int argc, char* argv[] )
 
 			if ( PhysiCell_globals.current_time <= tnf_pulse_injection_timer )
 			{
-<<<<<<< HEAD
-				inject_density_sphere(tnf_idx, tnf_pulse_concentration, membrane_lenght);
-=======
 				inject_density_sphere(tnf_idx, tnf_pulse_concentration, membrane_lenght, world, cart_topo);
->>>>>>> master
 			}
 
 			if ( PhysiCell_globals.current_time >= time_remove_tnf )
 			{
-<<<<<<< HEAD
-				remove_density(tnf_idx);
-=======
 				remove_density(tnf_idx, world, cart_topo);
 				std::cout << "REMOVING ALL TNF" << std::endl;
->>>>>>> master
 				time_remove_tnf += PhysiCell_settings.max_time;
 			}
 
@@ -422,7 +382,6 @@ int main( int argc, char* argv[] )
     	
 	
 	//Save a final simulation snapshot 
-<<<<<<< HEAD
 	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() );
 	if (PhysiCell_settings.enable_full_saves == true) 
 	{
@@ -433,27 +392,13 @@ int main( int argc, char* argv[] )
 	SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
 
 
-=======
-	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() ); 
-	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );
-	// save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time); 
-	
-	sprintf( filename , "%s/final.svg" , PhysiCell_settings.folder.c_str() ); 
-	SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, world, cart_topo );
-	// SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function);
-	
->>>>>>> master
 	
 	//Timer
 	if(IOProcessor(world)) 
 	{
 		std::cout << std::endl << "Total simulation runtime: " << std::endl;
 		BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() ); 
-<<<<<<< HEAD
     }
-=======
- 	 }
->>>>>>> master
   
   	//Gracefully shut-down MPI i.e. distributed parallelization
 	world.Finalize(); 

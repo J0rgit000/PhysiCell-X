@@ -72,14 +72,34 @@
 
 #include <iostream>
 #include <fstream>
+#include <atomic>
 
 namespace PhysiCell{
 
 thread_local std::mt19937_64 physicell_PRNG_generator; 
 thread_local bool local_pnrg_setup_done = false; 
+thread_local unsigned int local_pnrg_setup_generation = 0;
+
+static std::atomic<unsigned int> physicell_rng_setup_generation(0);
 
 unsigned int physicell_random_seed = 0; 
 std::vector<unsigned int> physicell_random_seeds; 
+
+unsigned int RandomSeedForRank( unsigned int input, int mpi_rank )
+{
+	if( mpi_rank <= 0 )
+	{ return input; }
+
+	unsigned int output = input;
+	output += 0x9e3779b9u * static_cast<unsigned int>( mpi_rank );
+	output ^= output >> 16;
+	output *= 0x85ebca6bu;
+	output ^= output >> 13;
+	output *= 0xc2b2ae35u;
+	output ^= output >> 16;
+
+	return output;
+}
 
 void setup_rng( void )
 {
@@ -105,6 +125,8 @@ void setup_rng( void )
 
 	// now get number of threads and set up a seed for each thread 
 	int num_threads = PhysiCell_settings.omp_num_threads; 
+	if( num_threads < 1 )
+	{ num_threads = 1; }
 	physicell_random_seeds.resize( num_threads, 0 ); 
 
 	// use std::seed_seq to create a sequence of seeds 
@@ -127,6 +149,8 @@ void setup_rng( void )
 	for( int i=1; i < num_threads ; i++ )
 	{ physicell_random_seeds[i] = seeds[i]; }
 
+	local_pnrg_setup_generation = physicell_rng_setup_generation.fetch_add( 1, std::memory_order_acq_rel ) + 1;
+	local_pnrg_setup_done = true;
 	setup_done = true;
 	return; 
 }
@@ -134,6 +158,12 @@ void setup_rng( void )
 void SeedRandom( unsigned int input )
 { 
 	physicell_random_seed = input;
+	return setup_rng();
+}
+
+void SeedRandom( unsigned int input, int mpi_rank )
+{
+	physicell_random_seed = RandomSeedForRank( input, mpi_rank );
 	return setup_rng();
 }
 
@@ -148,24 +178,33 @@ double UniformRandom_old_not_thread_safe()
 	return std::generate_canonical<double, 10>(physicell_PRNG_generator);
 }
 
+void setup_thread_rng( void )
+{
+	const unsigned int current_generation = physicell_rng_setup_generation.load( std::memory_order_acquire );
+	if( local_pnrg_setup_done == false || local_pnrg_setup_generation != current_generation )
+	{
+		if( physicell_random_seeds.empty() )
+		{
+			physicell_PRNG_generator.seed( physicell_random_seed );
+			local_pnrg_setup_generation = current_generation;
+			local_pnrg_setup_done = true;
+			return;
+		}
+
+		int i = omp_get_thread_num();
+		if( i < 0 || i >= static_cast<int>( physicell_random_seeds.size() ) )
+		{ i = 0; }
+
+		physicell_PRNG_generator.seed( physicell_random_seeds[i] );
+		local_pnrg_setup_generation = current_generation;
+		local_pnrg_setup_done = true;
+	}
+}
+
 double UniformRandom( void )
 {
 	thread_local std::uniform_real_distribution<double> distribution(0.0,1.0);
-	if( local_pnrg_setup_done == false )
-	{
-		// get my thread number 
-		int i = omp_get_thread_num(); 
-    	physicell_PRNG_generator.seed( physicell_random_seeds[i] ); 
-		local_pnrg_setup_done = true; 
-/*
-		#pragma omp critical 
-		{
-		std::cout << "thread: " << i 
-		<< " seed: " << physicell_random_seeds[i]  << std::endl; 
-		std::cout << "\t first call: " << distribution(physicell_PRNG_generator) << std::endl; 
-		}
-*/
-	}
+	setup_thread_rng();
     return distribution(physicell_PRNG_generator);
 
 	// helpful info: https://stackoverflow.com/a/29710970
@@ -181,7 +220,8 @@ double UniformRandom( void )
 
 int UniformInt()
 {
-	static std::uniform_int_distribution<int> int_dis;
+	thread_local static std::uniform_int_distribution<int> int_dis;
+	setup_thread_rng();
 	return int_dis(physicell_PRNG_generator);
 }
 
@@ -189,6 +229,7 @@ int UniformInt()
 double NormalRandom( double mean, double standard_deviation )
 {
 	std::normal_distribution<double> d(mean,standard_deviation);
+	setup_thread_rng();
 	return d(physicell_PRNG_generator); 
 }
 

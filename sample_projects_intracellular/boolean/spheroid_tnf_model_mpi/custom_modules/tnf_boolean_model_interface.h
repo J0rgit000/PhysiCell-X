@@ -33,15 +33,10 @@ void update_boolean_model_inputs( Cell* pCell, Phenotype& phenotype, double dt )
 
 void update_cell_from_boolean_model(Cell* pCell, Phenotype& phenotype, double dt);
 
-<<<<<<< HEAD
 void tnf_bm_interface_main(Cell* pCell, Phenotype& phenotype, double dt);
 
 void update_behaviors(Cell* pCell, Phenotype& phenotype, double dt);
-=======
 void update_phenotype_with_signaling(Cell* pCell, Phenotype& phenotype, double dt);
-
-void update_phenotype_with_signaling(Cell* pCell, Phenotype& phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 // helper function to keep updated some cell custom variables
 void update_monitor_variables( Cell* pCell );
->>>>>>> master

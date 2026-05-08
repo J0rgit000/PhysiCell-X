@@ -2309,7 +2309,7 @@ void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::
 		}	
 	}
 	
-	//write_neighbor_graph( filename );  to be done
+	write_neighbor_graph( filename );
 
 
 	// attached cell graph 
@@ -2365,7 +2365,7 @@ void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::
 	}
 		
 
-	//write_attached_cells_graph( filename );	to be done
+	write_attached_cells_graph( filename );
 
 	// spring attached cell graph 
 	if (world.rank == 0) {
@@ -2419,7 +2419,7 @@ void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::
 		}	
 	}
 	
-	//write_spring_attached_cells_graph( filename );  to be done
+	write_spring_attached_cells_graph( filename );
 	//delete[] buffer;
 	return; 
 }

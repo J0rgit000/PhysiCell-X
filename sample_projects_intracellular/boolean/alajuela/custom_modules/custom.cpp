@@ -245,11 +245,6 @@ std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius
 void setup_tissue(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	std::vector<std::vector<double>> positions;
-	
-	if ( parameters.bools("read_init") )
-	{
-		std::string csv_fname = parameters.strings("init_cells_filename");
-		positions = read_cells_positions(csv_fname, ',', true); // estava com a \t 
 
 	if( world.rank == 0 )
 	{

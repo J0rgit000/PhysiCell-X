@@ -92,7 +92,6 @@ void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 
 	SeedRandom(parameters.ints("random_seed")); // or specify a seed here
-<<<<<<< HEAD
 
 	initialize_default_cell_definition();
 
@@ -102,17 +101,7 @@ void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo )
 	//  This sets the pre and post intracellular update functions
 	cell_defaults.functions.pre_update_intracellular =  update_boolean_model_inputs;
 	cell_defaults.functions.post_update_intracellular = update_behaviors;
-	cell_defaults.functions.update_phenotype = NULL; 
-
-	
-	//Jose: Commented for now
-	//cell_defaults.functions.volume_update_function = standard_volume_update_function;
-	//cell_defaults.functions.update_velocity = standard_update_cell_velocity;
-	//cell_defaults.functions.update_velocity_parallel = standard_update_cell_velocity;
-	
-	
-	
-=======
+	//cell_defaults.functions.update_phenotype = NULL;
 	
 	/*-----------------------------------------------------------------------------------------------------------------------------*/
 	/* For parallel settings, set the update velocity in parallel function pointer - this will call the new function which has the */
@@ -127,30 +116,21 @@ void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo )
 
 	cell_defaults.functions.update_phenotype = update_cell_and_death_parameters_O2_based;
 	cell_defaults.functions.update_phenotype_parallel = update_cell_and_death_parameters_O2_based;
->>>>>>> master
 	
 	cell_defaults.functions.update_migration_bias = NULL;
 	cell_defaults.functions.custom_cell_rule = NULL;
-<<<<<<< HEAD
 
 	
 
-=======
->>>>>>> master
 	cell_defaults.functions.add_cell_basement_membrane_interactions = NULL;
 	cell_defaults.functions.calculate_distance_to_membrane = NULL;
 	cell_defaults.functions.set_orientation = NULL;
 
 	/* This parses the cell definitions in the XML config file. */
 	
-<<<<<<< HEAD
 	initialize_cell_definitions_from_pugixml( world, cart_topo );
 
 	// initialize tnf
-=======
-	// Only serial version exists and is sufficient.
-	initialize_cell_definitions_from_pugixml();
->>>>>>> master
 
 	// Tnitialize TNF submodels
 	tnf_receptor_model_setup();											
@@ -164,16 +144,12 @@ void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo )
 	cell_defaults.custom_data["bound_internal_TNFR"] = 0;
 	
 	build_cell_definitions_maps();
-<<<<<<< HEAD
 
 	setup_signal_behavior_dictionaries(world, cart_topo); 
 	
 	
 	display_cell_definitions(std::cout, world, cart_topo);
 	
-=======
-	display_cell_definitions(std::cout);
->>>>>>> master
 
 	return;
 }
@@ -222,14 +198,9 @@ void setup_tissue(void)
 		float x = cells[i].x;
 		float y = cells[i].y;
 		float z = cells[i].z;
-<<<<<<< HEAD
 		double elapsed_time = cells[i].elapsed_time;
 		//check following funcionality
 		//double elapsed_time = UniformRandom();
-=======
-		double elapsed_time = UniformRandom();
-		
->>>>>>> origin/development
 		pCell = create_cell(get_cell_definition("default"));
 		pCell->phenotype.cycle.data.elapsed_time_in_phase = elapsed_time;
 		pCell->assign_position(x, y, z);
@@ -239,190 +210,6 @@ void setup_tissue(void)
 
 	return;
 }
-
-/*---------------------------------------*/
-/* Parallel version of setup_tissue(...) */
-/*---------------------------------------*/
-<<<<<<< HEAD
-/*
-=======
->>>>>>> master
-void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
-{
-
-	double Xmin = m.mesh.bounding_box[0]; 
-	double Ymin = m.mesh.bounding_box[1]; 
-	double Zmin = m.mesh.bounding_box[2]; 
-
-	double Xmax = m.mesh.bounding_box[3]; 
-	double Ymax = m.mesh.bounding_box[4]; 
-	double Zmax = m.mesh.bounding_box[5]; 
-	
-	double Xrange = Xmax - Xmin; 
-	double Yrange = Ymax - Ymin; 
-	double Zrange = Zmax - Zmin;
-<<<<<<< HEAD
-
-
-	Cell* pCell;
-	std::vector<std::vector<double>> generated_positions_at_root;
-	std::vector<double> position = {0,0,0};												//Temporary buffer
-	
-	mpi_CellPositions cp;   //To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
-	mpi_MyCells       mc;   //To store cell positions, cell IDs, no. of cells at each process.
-	
-	if(world.rank == 0)
-	{
-		std::vector<init_record> cells = read_init_file(parameters.strings("init_cells_filename"), ';', true);
-	
-		for (int i = 0; i < cells.size(); i++)
-		{ 
-			position[0] = cells[i].x; 
-			position[1] = cells[i].y; 
-			position[2] = cells[i].z;
-			//double elapsed_time = cells[i].elapsed_time; ---> This needs to be made random and set when creating cell
-			generated_positions_at_root.push_back(position); 
-		}
-=======
-	
-		
-	// To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
-	mpi_CellPositions cp;   
-	
-	// To store cell positions, cell IDs, no. of cells at each process.
-	mpi_MyCells       mc;   
-  
-	/* First Generate Cell positions on rank 0 by reading from file */
-	if(world.rank == 0){
-		std::vector<std::vector<double>> cells_postions_at_root;
-		if ( parameters.bools("read_init") ) {
-			std::string init_cells_fame = parameters.strings("init_cells_filename");
-			std::vector<init_record> cells = read_init_file(init_cells_fame, ';', true);
-			std::vector<double> position = {0,0,0};
-			if( world.rank == 0 )
-			{
-				std::cout<<cells.size()<<std::endl; 
-			}
-			for (int i = 0; i < cells.size(); i++)
-			{ 
-				position[0] = cells[i].x; 
-				position[1] = cells[i].y; 
-				position[2] = cells[i].z;
-				cells_postions_at_root.push_back(position); 
-			}
-		} else {
-			double tumor_radius =  parameters.doubles("tumor_radius");
-			double cell_radius = cell_defaults.phenotype.geometry.radius;
-			cells_postions_at_root = create_cell_sphere_positions(cell_radius, tumor_radius);
-		}
-
-		/*---------------------------------------------------------------------------------------------------*/
-		/* (1) Obtain the current highest ID - rank 0 knows this as rank 0 generates all IDs 				 */
-		/* (2) Distribute the positions and IDs to respective processes 									 */
-		/* (3) Set the maximum ID as the current maximum ID would be needed if new cells are to be generated */
-		/*---------------------------------------------------------------------------------------------------*/
-<<<<<<< HEAD
->>>>>>> master
-	
-		//IDs for new cells (positions) will start from the current highest ID 
-		int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();                                    
-		cp.positions_to_rank_list(generated_positions_at_root, 
-								m.mesh.bounding_box[0], m.mesh.bounding_box[3], 
-								m.mesh.bounding_box[1], m.mesh.bounding_box[4], 
-								m.mesh.bounding_box[2], m.mesh.bounding_box[5], 
-								m.mesh.dx, m.mesh.dy, m.mesh.dz, 
-								world, cart_topo, strt_cell_ID);
-			
-		Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + generated_positions_at_root.size()); //Highest ID now is the starting ID + no. of generated coordinates !
-=======
-		
-		// IDs for new cells (positions) will start from the current highest ID      
-		int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();  
-		cp.positions_to_rank_list(	cells_postions_at_root, 
-									m.mesh.bounding_box[0], m.mesh.bounding_box[3], 
-									m.mesh.bounding_box[1], m.mesh.bounding_box[4], 
-									m.mesh.bounding_box[2], m.mesh.bounding_box[5], 
-									m.mesh.dx, m.mesh.dy, m.mesh.dz, 
-									world, cart_topo, strt_cell_ID
-								);
-        
-		// Updating the highest ID to the starting ID + no. of generated (cell possitions)
-  		Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + cells_postions_at_root.size()); 
->>>>>>> origin/development
-	} 
-	
-	// Distribute cell positions
-	distribute_cell_positions(cp, mc, world, cart_topo);                           
- 
-<<<<<<< HEAD
- 
- for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
-	{	
- 		pCell = create_cell( get_cell_definition("default"), mc.my_cell_IDs[i] );
- 		pCell->phenotype.cycle.data.elapsed_time_in_phase = UniformRandom(); 
-		pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
-		update_monitor_variables(pCell);				//No need to parallelize
-=======
- 	/* Create cells at individual processes */
-  	for( int i=0; i < mc.my_no_of_cell_IDs; i++ ) {	
-		Cell* pCell;
-
-		int cell_id = mc.my_cell_IDs[i];
- 		
-		pCell = create_cell( get_cell_definition("default"), cell_id );
-		pCell->phenotype.cycle.data.elapsed_time_in_phase = UniformRandom();
-		pCell->assign_position( mc.my_cell_coords[ 3*i + 0 ],
-								mc.my_cell_coords[ 3*i + 1 ],
-								mc.my_cell_coords[ 3*i + 2 ],
-								world, cart_topo ); 
-
-		static int idx_bind_rate = pCell->custom_data.find_variable_index( "TNFR_binding_rate" );
-		static float mean_bind_rate = pCell->custom_data[idx_bind_rate];
-		static float std_bind_rate = parameters.doubles("TNFR_binding_rate_std");
-		static float min_bind_rate = parameters.doubles("TNFR_binding_rate_min");
-		static float max_bind_rate = parameters.doubles("TNFR_binding_rate_max");
-		
-		if ( std_bind_rate > 0 ) {
-			pCell->custom_data[idx_bind_rate] = NormalRandom(mean_bind_rate, std_bind_rate);
-			if (pCell->custom_data[idx_bind_rate] < min_bind_rate)
-			{ pCell->custom_data[idx_bind_rate] = min_bind_rate; }
-			if (pCell->custom_data[idx_bind_rate] > max_bind_rate)
-			{ pCell->custom_data[idx_bind_rate] = max_bind_rate; }
-		}
-		static int idx_endo_rate = pCell->custom_data.find_variable_index( "TNFR_endocytosis_rate" );
-		static float mean_endo_rate = pCell->custom_data[idx_endo_rate];
-		static float std_endo_rate = parameters.doubles("TNFR_endocytosis_rate_std");
-		static float min_endo_rate = parameters.doubles("TNFR_endocytosis_rate_min");
-		static float max_endo_rate = parameters.doubles("TNFR_endocytosis_rate_max");
-		
-		if ( std_endo_rate > 0 ){
-			pCell->custom_data[idx_endo_rate] = NormalRandom(mean_endo_rate, std_endo_rate);
-			if (pCell->custom_data[idx_endo_rate] < min_endo_rate)
-			{ pCell->custom_data[idx_endo_rate] = min_endo_rate; }
-			if (pCell->custom_data[idx_endo_rate] > max_endo_rate)
-			{ pCell->custom_data[idx_endo_rate] = max_endo_rate; }
-		}
-
-
-		static int idx_recycle_rate = pCell->custom_data.find_variable_index( "TNFR_recycling_rate" ); 
-		static float mean_recycle_rate = pCell->custom_data[idx_recycle_rate];
-		static float std_recycle_rate = parameters.doubles("TNFR_recycling_rate_std");
-		static float min_recycle_rate = parameters.doubles("TNFR_recycling_rate_min");
-		static float max_recycle_rate = parameters.doubles("TNFR_recycling_rate_max");
-
-		if ( std_recycle_rate > 0 ) {
-			pCell->custom_data[idx_recycle_rate] = NormalRandom(mean_recycle_rate, std_recycle_rate);
-			if (pCell->custom_data[idx_recycle_rate] < min_recycle_rate)
-			{ pCell->custom_data[idx_recycle_rate] = min_recycle_rate; }
-			if (pCell->custom_data[idx_recycle_rate] > max_recycle_rate)
-			{ pCell->custom_data[idx_recycle_rate] = max_recycle_rate; }
-		}
-
-		update_monitor_variables(pCell);				
->>>>>>> master
-	}
-	 
-} */
 
 std::vector<std::vector<double>> read_cells_positions(std::string filename, char delimiter, bool header)
 {
@@ -972,18 +759,10 @@ double total_active_FADD_node(mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 double total_active_NFKb_node(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-<<<<<<< HEAD
-	double out = 0.0;
-
-	for (int i = 0; i < (*all_cells).size(); i++)
-	{
-		if ((*all_cells)[i]->phenotype.death.dead == true && (*all_cells)[i]->phenotype.death.current_death_model_index == 1)
-		{
-			out += 1.0;
-		}
-	}
-
-	return out;
+	std::string var_name = "nfkb_node";
+	double result = total_custom_variable_live(var_name, world, cart_topo);
+	return result;
+	
 }
 
 double total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
@@ -1001,13 +780,3 @@ double total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_top
 	MPI_Reduce(&out, &global_out, 1, MPI_DOUBLE, MPI_SUM, 0, cart_topo.mpi_cart_comm);
 	return global_out;
 }
-<<<<<<< HEAD
-=======
-=======
-	std::string var_name = "nfkb_node";
-	double result = total_custom_variable_live(var_name, world, cart_topo);
-	return result;
-	
-}
->>>>>>> origin/development
->>>>>>> master
