@@ -67,7 +67,20 @@
 
 #include "custom.h"
 #include "../BioFVM/BioFVM.h"  
+#include "../DistPhy/DistPhy_Collective.h"
 using namespace BioFVM;
+
+namespace
+{
+bool is_necrotic_phase(const Cell* pCell)
+{
+	const int phase_code =
+		pCell->phenotype.cycle.pCycle_Model->phases[pCell->phenotype.cycle.data.current_phase_index].code;
+	return phase_code == PhysiCell_constants::necrotic_swelling ||
+		   phase_code == PhysiCell_constants::necrotic_lysed ||
+		   phase_code == PhysiCell_constants::necrotic;
+}
+}
 
 // declare cell definitions here 
 
@@ -203,4 +216,95 @@ std::vector<std::string> my_coloring_function( Cell* pCell )
 void color_node(Cell* pCell){
 	std::string node_name = parameters.strings("node_to_visualize");
 	pCell->custom_data[node_name] = pCell->phenotype.intracellular->get_boolean_variable_value(node_name);
+}
+
+int total_basic_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	(void) world;
+	const int local_count = static_cast<int>(all_basic_agents.size());
+	return DistPhy::mpi::distribute_global_sum(local_count, cart_topo);
+}
+
+int total_cell_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	(void) world;
+	const int local_count = static_cast<int>((*all_cells).size());
+	return DistPhy::mpi::distribute_global_sum(local_count, cart_topo);
+}
+
+int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	(void) world;
+	int local_count = 0;
+	const int cell_count = static_cast<int>((*all_cells).size());
+
+	#pragma omp parallel for reduction(+:local_count)
+	for (int i = 0; i < cell_count; ++i)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if (!pCell->phenotype.death.dead)
+		{
+			++local_count;
+		}
+	}
+
+	return DistPhy::mpi::distribute_global_sum(local_count, cart_topo);
+}
+
+int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	(void) world;
+	int local_count = 0;
+	const int cell_count = static_cast<int>((*all_cells).size());
+
+	#pragma omp parallel for reduction(+:local_count)
+	for (int i = 0; i < cell_count; ++i)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if (pCell->phenotype.death.dead)
+		{
+			++local_count;
+		}
+	}
+
+	return DistPhy::mpi::distribute_global_sum(local_count, cart_topo);
+}
+
+int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	(void) world;
+	int local_count = 0;
+	const int cell_count = static_cast<int>((*all_cells).size());
+
+	#pragma omp parallel for reduction(+:local_count)
+	for (int i = 0; i < cell_count; ++i)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if (pCell->phenotype.death.dead && is_necrotic_phase(pCell))
+		{
+			++local_count;
+		}
+	}
+
+	return DistPhy::mpi::distribute_global_sum(local_count, cart_topo);
+}
+
+int total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
+{
+	(void) world;
+	int local_count = 0;
+	const int cell_count = static_cast<int>((*all_cells).size());
+
+	#pragma omp parallel for reduction(+:local_count)
+	for (int i = 0; i < cell_count; ++i)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if (pCell->phenotype.death.dead &&
+			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic)
+		{
+			++local_count;
+		}
+	}
+
+	return DistPhy::mpi::distribute_global_sum(local_count, cart_topo);
 }

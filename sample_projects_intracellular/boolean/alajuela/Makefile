@@ -221,9 +221,9 @@ PhysiCell_settings.o: ./modules/PhysiCell_settings.cpp
 
 MaBoSS: 
 ifeq ($(OS), Windows_NT)
-	python beta/setup_libmaboss.py
+	python addons/PhysiBoSS/setup_libmaboss.py
 else
-	python3 beta/setup_libmaboss.py
+	python3 addons/PhysiBoSS/setup_libmaboss.py
 endif
 
 maboss_network.o: ./addons/PhysiBoSS/src/maboss_network.cpp
@@ -242,7 +242,7 @@ tnf_boolean_model_interface.o: ./custom_modules/tnf_boolean_model_interface.cpp
 
 reset:
 	rm -f *.cpp 
-	cp Makefile-default Makefile 
+	cp Makefile-backup Makefile 
 	rm -f ./custom_modules/*
 	touch ./custom_modules/empty.txt 
 	touch ALL_CITATIONS.txt 

@@ -18,7 +18,7 @@ MABOSS_MAX_NODES = 64
 endif
 
 # MaBoSS directory
-MABOSS_DIR = addons/PhysiBoSS/MaBoSS-env-2.0/engine
+MABOSS_DIR = addons/PhysiBoSS/MaBoSS/engine
 CUR_DIR = $(shell pwd)
 CUSTOM_DIR = sample_projects/Arnau_model/custom_modules
 
@@ -54,9 +54,12 @@ ARCH := native # best auto-tuning
 # ARCH := nocona #64-bit pentium 4 or later 
 
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
-CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
+CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -m64 -std=c++11 -g -fopenmp -DADDON_PHYSIBOSS -DMECHS_TIME
+LDFLAGS := -no-pie
 
-COMPILE_COMMAND := $(CC) $(CFLAGS) 
+# Any TU that includes PhysiBoSS headers must see the same MAXNODES value,
+# otherwise inline virtual methods can be emitted with an incompatible layout.
+COMPILE_COMMAND := $(CC) $(CFLAGS) $(INC)
 
 DistPhy_OBJECTS:= DistPhy_Environment.o DistPhy_Cartesian.o DistPhy_Utils.o DistPhy_Collective.o
 
@@ -71,7 +74,7 @@ PhysiCell_standard_models_mpi.o
 PhysiCell_module_OBJECTS :=  PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o \
 PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o PhysiCell_geometry.o
 
-# put your custom objects here (they should be in the custom_modules directory)  
+# put your custom objects here (they should be in the custom_modules directory)
 
 PhysiBoSS_OBJECTS := maboss_network.o maboss_intracellular.o
 
@@ -87,7 +90,7 @@ name:
 	@echo "\n\nExecutable name is " $(PROGRAM_NAME) " \n"
 	
 all: MaBoSS main.cpp $(ALL_OBJECTS)
-	$(COMPILE_COMMAND) $(INC)  -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp $(LIB)
+	$(COMPILE_COMMAND) $(INC) $(LDFLAGS) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp $(LIB)
 
 # PhysiCell core components	
 DistPhy_Environment.o: ./DistPhy/DistPhy_Environment.cpp
@@ -142,7 +145,10 @@ PhysiCell_cell_container_mechanics.o: ./core/PhysiCell_cell_container_mechanics.
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell_container_mechanics.cpp
 
 PhysiCell_standard_models_mpi.o: ./core/PhysiCell_standard_models_mpi.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_standard_models_mpi.cpp    
+	$(COMPILE_COMMAND) -c ./core/PhysiCell_standard_models_mpi.cpp
+
+PhysiCell_geometry.o: ./modules/PhysiCell_geometry.cpp
+	$(COMPILE_COMMAND) -c ./modules/PhysiCell_geometry.cpp     
 	
 # BioFVM core components (needed by PhysiCell)
 	
@@ -198,21 +204,22 @@ PhysiCell_pugixml.o: ./modules/PhysiCell_pugixml.cpp
 	$(COMPILE_COMMAND) -c ./modules/PhysiCell_pugixml.cpp
 	
 PhysiCell_settings.o: ./modules/PhysiCell_settings.cpp
-	$(COMPILE_COMMAND)  -c ./modules/PhysiCell_settings.cpp	
-
-PhysiCell_geometry.o: ./modules/PhysiCell_geometry.cpp
-	$(COMPILE_COMMAND) -c ./modules/PhysiCell_geometry.cpp 
+	$(COMPILE_COMMAND) -c ./modules/PhysiCell_settings.cpp	
 	
 # user-defined PhysiCell modules
 
-MaBoSS:
-	python3 beta/setup_libmaboss.py
+MaBoSS: 
+ifeq ($(OS), Windows_NT)
+	python addons/PhysiBoSS/setup_libmaboss.py
+else
+	python3 addons/PhysiBoSS/setup_libmaboss.py
+endif
 
 maboss_network.o: ./addons/PhysiBoSS/src/maboss_network.cpp
-	$(COMPILE_COMMAND) $(INC) -c ./addons/PhysiBoSS/src/maboss_network.cpp
+	$(COMPILE_COMMAND) -c ./addons/PhysiBoSS/src/maboss_network.cpp
 
 maboss_intracellular.o: ./addons/PhysiBoSS/src/maboss_intracellular.cpp
-	$(COMPILE_COMMAND) $(INC) -c ./addons/PhysiBoSS/src/maboss_intracellular.cpp
+	$(COMPILE_COMMAND) -c ./addons/PhysiBoSS/src/maboss_intracellular.cpp
 
 custom.o: ./custom_modules/custom.cpp 
 	$(COMPILE_COMMAND) $(INC)  -c ./custom_modules/custom.cpp
@@ -221,14 +228,11 @@ custom.o: ./custom_modules/custom.cpp
 
 reset:
 	rm -f *.cpp 
-	cp ./sample_projects/Makefile-default Makefile 
+	cp Makefile-backup Makefile 
 	rm -f ./custom_modules/*
 	touch ./custom_modules/empty.txt 
 	touch ALL_CITATIONS.txt 
 	rm ALL_CITATIONS.txt 
-	cp ./config/PhysiCell_settings-backup.xml ./config/PhysiCell_settings.xml 
-	rm -rf ./config/boolean_network/
-	rm -rf ./scripts
 
 MaBoSS-clean:
 	rm -fr addons/PhysiBoSS/MaBoSS-env-2.0

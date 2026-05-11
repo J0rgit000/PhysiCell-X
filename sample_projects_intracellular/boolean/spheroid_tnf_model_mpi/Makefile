@@ -18,7 +18,7 @@ MABOSS_MAX_NODES = 64
 endif
 
 # MaBoSS directory
-MABOSS_DIR = addons/PhysiBoSS/MaBoSS-env-2.0/engine
+MABOSS_DIR = addons/PhysiBoSS/MaBoSS/engine
 CUR_DIR = $(shell pwd)
 
 ifneq ($(OS), Windows_NT)
@@ -33,6 +33,17 @@ INC := -DADDON_PHYSIBOSS -I$(CUR_DIR)/$(MABOSS_DIR)/include -DMAXNODES=$(MABOSS_
 ifeq ($(shell expr $(MABOSS_MAX_NODES) '>' 64), 1)
 LIB := -L$(CUR_DIR)/$(MABOSS_DIR)/lib -lMaBoSS_$(MABOSS_MAX_NODES)n-static $(LDL_FLAG)
 endif
+
+USE_JEMALLOC ?= 0
+JEMALLOC_LIB :=
+
+ifeq ($(USE_JEMALLOC),1)
+	# jemalloc include/library directories are expected to come from the
+	# environment, e.g. CPLUS_INCLUDE_PATH and LIBRARY_PATH.
+	JEMALLOC_LIB += -Wl,--no-as-needed -ljemalloc -Wl,--as-needed
+endif
+
+LIB += $(JEMALLOC_LIB)
 
 ARCH := native # best auto-tuning
 # ARCH := core2 # a reasonably safe default for most CPUs since 2007
@@ -54,9 +65,11 @@ ARCH := native # best auto-tuning
 
 # Without debug symbol
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
+CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -m64 -std=c++11 -g -fopenmp -DADDON_PHYSIBOSS -DMECHS_TIME
+LDFLAGS := -no-pie
 
 # Normal compilation with debug symbols
-CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g
+
 
 # -O1 or -O0 optimization level + debug symbols for Valgrind (DOESN'T WORK)
 # CFLAGS := -march=$(ARCH) -O1 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g
@@ -64,7 +77,7 @@ CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -s
 # -O1 or -O0 optimization level + WITHOUT OpenMP + debug symbols for Valgrind + WITHOUT -march=native (WORKS)
 # CFLAGS := -O1 -fomit-frame-pointer -mfpmath=both -m64 -std=c++11 -g
 
-COMPILE_COMMAND := $(CC) $(CFLAGS) 
+COMPILE_COMMAND := $(CC) $(CFLAGS) $(INC)
 
 DistPhy_OBJECTS:= DistPhy_Environment.o DistPhy_Cartesian.o DistPhy_Utils.o DistPhy_Collective.o
 
@@ -77,7 +90,7 @@ PhysiCell_rules.o PhysiCell_basic_signaling.o PhysiCell_cell_container_mechanics
 PhysiCell_standard_models_mpi.o 
 
 PhysiCell_module_OBJECTS :=  PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o \
-PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o
+PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o PhysiCell_geometry.o
 
 # put your custom objects here (they should be in the custom_modules directory)  
 
@@ -88,16 +101,14 @@ PhysiCell_custom_module_OBJECTS := custom.o submodel_data_structures.o tnf_recep
 pugixml_OBJECTS := pugixml.o
 
 PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJECTS) $(PhysiCell_module_OBJECTS) $(DistPhy_OBJECTS)
-ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS) $(PhysiBoSS_OBJECTS) $(PhysiBoSS_module_OBJECTS) 
+ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS) $(PhysiBoSS_OBJECTS)
 
 # compile the project 
 name:
 	@echo "\n\nExecutable name is " $(PROGRAM_NAME) " \n"
 	
 all: MaBoSS main.cpp $(ALL_OBJECTS)
-	$(COMPILE_COMMAND) $(INC)  -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp $(LIB)
-	@echo ""
-	@echo "check for $(PROGRAM_NAME)"
+	$(COMPILE_COMMAND) $(LDFLAGS) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp $(LIB)
 
 # PhysiCell core components	
 DistPhy_Environment.o: ./DistPhy/DistPhy_Environment.cpp
@@ -119,7 +130,7 @@ PhysiCell_digital_cell_line.o: ./core/PhysiCell_digital_cell_line.cpp
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_digital_cell_line.cpp
 
 PhysiCell_cell.o: ./core/PhysiCell_cell.cpp
-	$(COMPILE_COMMAND) $(INC) -c ./core/PhysiCell_cell.cpp 
+	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell.cpp
 
 PhysiCell_cell_mpi.o: ./core/PhysiCell_cell_mpi.cpp
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell_mpi.cpp 
@@ -152,7 +163,10 @@ PhysiCell_cell_container_mechanics.o: ./core/PhysiCell_cell_container_mechanics.
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell_container_mechanics.cpp
 
 PhysiCell_standard_models_mpi.o: ./core/PhysiCell_standard_models_mpi.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_standard_models_mpi.cpp    
+	$(COMPILE_COMMAND) -c ./core/PhysiCell_standard_models_mpi.cpp
+
+PhysiCell_geometry.o: ./modules/PhysiCell_geometry.cpp
+	$(COMPILE_COMMAND) -c ./modules/PhysiCell_geometry.cpp     
 	
 # BioFVM core components (needed by PhysiCell)
 	
@@ -213,34 +227,34 @@ PhysiCell_settings.o: ./modules/PhysiCell_settings.cpp
 
 MaBoSS: 
 ifeq ($(OS), Windows_NT)
-	python beta/setup_libmaboss.py
+	python addons/PhysiBoSS/setup_libmaboss.py
 else
-	python3 beta/setup_libmaboss.py
+	python3 addons/PhysiBoSS/setup_libmaboss.py
 endif
 
 maboss_network.o: ./addons/PhysiBoSS/src/maboss_network.cpp
-	$(COMPILE_COMMAND) $(INC) -c ./addons/PhysiBoSS/src/maboss_network.cpp
+	$(COMPILE_COMMAND) -c ./addons/PhysiBoSS/src/maboss_network.cpp
 
 maboss_intracellular.o: ./addons/PhysiBoSS/src/maboss_intracellular.cpp
-	$(COMPILE_COMMAND) $(INC) -c ./addons/PhysiBoSS/src/maboss_intracellular.cpp
+	$(COMPILE_COMMAND) -c ./addons/PhysiBoSS/src/maboss_intracellular.cpp
 
-custom.o: ./custom_modules/custom.cpp 
-	$(COMPILE_COMMAND) $(INC)  -c ./custom_modules/custom.cpp
-
-submodel_data_structures.o: ./custom_modules/submodel_data_structures.cpp
-	$(COMPILE_COMMAND) $(INC) -c ./custom_modules/submodel_data_structures.cpp
+custom.o: ./custom_modules/custom.cpp
+	$(COMPILE_COMMAND) -c ./custom_modules/custom.cpp
+	
+tnf_boolean_model_interface.o: ./custom_modules/tnf_boolean_model_interface.cpp
+	$(COMPILE_COMMAND) -c ./custom_modules/tnf_boolean_model_interface.cpp
 
 tnf_receptor_dynamics.o: ./custom_modules/tnf_receptor_dynamics.cpp
-	$(COMPILE_COMMAND) $(INC) -c ./custom_modules/tnf_receptor_dynamics.cpp
+	$(COMPILE_COMMAND) -c ./custom_modules/tnf_receptor_dynamics.cpp
 
-tnf_boolean_model_interface.o: ./custom_modules/tnf_boolean_model_interface.cpp
-	$(COMPILE_COMMAND) $(INC) -c ./custom_modules/tnf_boolean_model_interface.cpp
-	@echo "compiling"
+submodel_data_structures.o: ./custom_modules/submodel_data_structures.cpp
+	$(COMPILE_COMMAND) -c ./custom_modules/submodel_data_structures.cpp
+
 # cleanup
 
 reset:
 	rm -f *.cpp 
-	cp ./sample_projects/Makefile-default Makefile 
+	cp Makefile-backup Makefile 
 	rm -f ./custom_modules/*
 	touch ./custom_modules/empty.txt 
 	touch ALL_CITATIONS.txt 
