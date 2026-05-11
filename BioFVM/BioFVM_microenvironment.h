@@ -370,6 +370,8 @@ class Microenvironment
 	void write_to_xml( std::string xml_filename , std::string data_filename ); // not yet written
 	void read_from_matlab( std::string filename ); // not yet written 
 	void read_from_xml( std::string filename ); // not yet written 
+	void print_densities( std::ostream& os , mpi_Environment &world, mpi_Cartesian &cart_topo);
+
 };
 
 extern void diffusion_decay_solver__constant_coefficients_explicit( Microenvironment& S, double dt ); 
@@ -490,6 +492,7 @@ void initialize_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_to
 void load_initial_conditions_from_matlab( std::string filename ); //Not done
 void load_initial_conditions_from_csv( std::string filename ); //Not done
 void get_row_from_substrate_initial_condition_csv(std::vector<int> &voxel_set, const std::string line, const std::vector<int> substrate_indices, const bool header_provided);//not done
+
 
 };
 

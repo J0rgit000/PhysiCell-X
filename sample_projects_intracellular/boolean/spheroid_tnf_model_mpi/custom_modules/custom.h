@@ -96,14 +96,9 @@ struct init_record
 	int phase;
 };
 
-<<<<<<< HEAD
 // setup functions to help us along 
 void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo );
 void setup_tissue( void );
-=======
-// setup functions to help us along 
-void create_cell_types( void );
->>>>>>> master
 
 /*======================================*/
 /* Parallel prototype of setup_tissue() */

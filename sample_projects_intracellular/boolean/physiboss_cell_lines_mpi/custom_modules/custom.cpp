@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /*
 ###############################################################################
 # If you use PhysiCell in your project, please cite PhysiCell and the version #
@@ -68,7 +67,20 @@
 
 #include "custom.h"
 #include "../BioFVM/BioFVM.h"  
+#include "../DistPhy/DistPhy_Collective.h"
 using namespace BioFVM;
+
+namespace
+{
+bool is_necrotic_phase(const Cell* pCell)
+{
+	const int phase_code =
+		pCell->phenotype.cycle.pCycle_Model->phases[pCell->phenotype.cycle.data.current_phase_index].code;
+	return phase_code == PhysiCell_constants::necrotic_swelling ||
+		   phase_code == PhysiCell_constants::necrotic_lysed ||
+		   phase_code == PhysiCell_constants::necrotic;
+}
+}
 
 // declare cell definitions here 
 
@@ -205,387 +217,94 @@ void color_node(Cell* pCell){
 	std::string node_name = parameters.strings("node_to_visualize");
 	pCell->custom_data[node_name] = pCell->phenotype.intracellular->get_boolean_variable_value(node_name);
 }
-=======
-/*
-###############################################################################
-# If you use PhysiCell in your project, please cite PhysiCell and the version #
-# number, such as below:                                                      #
-#                                                                             #
-# We implemented and solved the model using PhysiCell (Version x.y.z) [1].    #
-#                                                                             #
-# [1] A Ghaffarizadeh, R Heiland, SH Friedman, SM Mumenthaler, and P Macklin, #
-#     PhysiCell: an Open Source Physics-Based Cell Simulator for Multicellu-  #
-#     lar Systems, PLoS Comput. Biol. 14(2): e1005991, 2018                   #
-#     DOI: 10.1371/journal.pcbi.1005991                                       #
-#                                                                             #
-# See VERSION.txt or call get_PhysiCell_version() to get the current version  #
-#     x.y.z. Call display_citations() to get detailed information on all cite-#
-#     able software used in your PhysiCell application.                       #
-#                                                                             #
-# Because PhysiCell extensively uses BioFVM, we suggest you also cite BioFVM  #
-#     as below:                                                               #
-#                                                                             #
-# We implemented and solved the model using PhysiCell (Version x.y.z) [1],    #
-# with BioFVM [2] to solve the transport equations.                           #
-#                                                                             #
-# [1] A Ghaffarizadeh, R Heiland, SH Friedman, SM Mumenthaler, and P Macklin, #
-#     PhysiCell: an Open Source Physics-Based Cell Simulator for Multicellu-  #
-#     lar Systems, PLoS Comput. Biol. 14(2): e1005991, 2018                   #
-#     DOI: 10.1371/journal.pcbi.1005991                                       #
-#                                                                             #
-# [2] A Ghaffarizadeh, SH Friedman, and P Macklin, BioFVM: an efficient para- #
-#     llelized diffusive transport solver for 3-D biological simulations,     #
-#     Bioinformatics 32(8): 1256-8, 2016. DOI: 10.1093/bioinformatics/btv730  #
-#                                                                             #
-###############################################################################
-#                                                                             #
-# BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
-#                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
-# All rights reserved.                                                        #
-#                                                                             #
-# Redistribution and use in source and binary forms, with or without          #
-# modification, are permitted provided that the following conditions are met: #
-#                                                                             #
-# 1. Redistributions of source code must retain the above copyright notice,   #
-# this list of conditions and the following disclaimer.                       #
-#                                                                             #
-# 2. Redistributions in binary form must reproduce the above copyright        #
-# notice, this list of conditions and the following disclaimer in the         #
-# documentation and/or other materials provided with the distribution.        #
-#                                                                             #
-# 3. Neither the name of the copyright holder nor the names of its            #
-# contributors may be used to endorse or promote products derived from this   #
-# software without specific prior written permission.                         #
-#                                                                             #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" #
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE   #
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE  #
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE   #
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR         #
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF        #
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS    #
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN     #
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)     #
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE  #
-# POSSIBILITY OF SUCH DAMAGE.                                                 #
-#                                                                             #
-###############################################################################
-*/
-
-#include "custom.h"
-#include "../BioFVM/BioFVM.h"  
-#include "../DistPhy/DistPhy_Utils.h"
-#include "../DistPhy/DistPhy_Collective.h"
-using namespace DistPhy::mpi;
-
-// declare cell definitions here 
-
-std::vector<bool> nodes;
-
-void create_cell_types( void )
-{
-	// set the random seed 
-	SeedRandom( parameters.ints("random_seed") );  
-	
-	/* 
-	   Put any modifications to default cell definition here if you 
-	   want to have "inherited" by other cell types. 
-	   
-	   This is a good place to set default functions. 
-	*/ 
-	
-	cell_defaults.functions.volume_update_function = standard_volume_update_function;
-	cell_defaults.functions.update_velocity = NULL;
-
-	cell_defaults.functions.update_migration_bias = NULL; 
-	cell_defaults.functions.update_phenotype = NULL;
-	// cell_defaults.functions.update_phenotype_parallel = tumor_cell_phenotype_with_signaling; // update_cell_and_death_parameters_O2_based; 
-	cell_defaults.functions.update_phenotype_parallel = NULL;
-	cell_defaults.functions.custom_cell_rule = NULL; 
-	
-	cell_defaults.functions.add_cell_basement_membrane_interactions = NULL; 
-	cell_defaults.functions.calculate_distance_to_membrane = NULL; 
-	
-	cell_defaults.custom_data.add_variable(parameters.strings("node_to_visualize"), "dimensionless", 0.0 ); //for paraview visualization
-
-	/*
-	   This parses the cell definitions in the XML config file. 
-	*/
-	
-	initialize_cell_definitions_from_pugixml(); 
-	
-	/* 
-	   Put any modifications to individual cell definitions here. 
-	   
-	   This is a good place to set custom functions. 
-	*/ 
-	
-	/*
-	   This builds the map of cell definitions and summarizes the setup. 
-	*/
-
-	build_cell_definitions_maps(); 
-	
-	// display_cell_definitions( std::cout ); 
-	
-	return; 
-}
-
-/*==============================================*/
-/* Parallel version of setup_microenvironment() */
-/*==============================================*/
-
-void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
-{
-	
-	if( default_microenvironment_options.simulate_2D == true )
-	{
-		if(IOProcessor(world))
-            std::cout << "Warning: overriding XML config option and setting to 2D!" << std::endl; 
-		default_microenvironment_options.simulate_2D = false; 
-	}
-			
-	initialize_microenvironment(world, cart_topo); 	
-
-	return; 
-}	
-
-
-/*------------------------------------------------------------------------*/
-/* Parallel version of setup_tissue(), replacing this function completely */
-/* by Miguel's version of setup_tissue and then parallelizing             */
-/*------------------------------------------------------------------------*/
-
-void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
-{
-    
-	Cell* pCell = NULL; 
-    
-    std::vector<std::vector<double>> positions;		//What is this variable for ?  
-    std::vector<std::vector<double>> generated_positions_at_root;
-    
-    /*----------------------------------------------------------------------------------------------------*/
-    /* Object of mpi_CellPositions must be declared for all processes because distribute_cell_positions() */
-    /* function will pass 2 objects of the kind mpi_CellPositions and mpi_MyCells                         */
-    /*----------------------------------------------------------------------------------------------------*/
-    
-    mpi_CellPositions cp;                //To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
-    mpi_MyCells       mc;                //To store cell positions, cell IDs, no. of cells at each process.
-	
-   
-	for (auto t_cell_definition: cell_definitions_by_index) {
-
-		if(world.rank == 0) //Only the MPI Rank 0 process will generate positions
-		{
-			generated_positions_at_root.clear();
-			std::vector<double> t_position;
-			for (int i=0; i < 90; i+= 10)
-				for (int j=0; j < 90; j+= 10){
-					
-					t_position.clear();
-					switch (t_cell_definition->type) {
-						case 0://get_cell_definition("default").type:	
-							t_position.push_back(-i-10);
-							t_position.push_back(-j-10);
-							break;
-						case 1://get_cell_definition("other").type:	
-							t_position.push_back(+i+10);
-							t_position.push_back(-j-10);
-							break;
-						case 2://get_cell_definition("another").type:	
-							t_position.push_back(-i-10);
-							t_position.push_back(+j+10);
-							break;
-						case 3://get_cell_definition("yet_another").type:	
-							t_position.push_back(+i+10);
-							t_position.push_back(+j+10);
-							break;
-						case 4://get_cell_definition("yet_yet_another").type:	
-							t_position.push_back(+i+110);
-							t_position.push_back(-j-10);
-							break;
-						case 5://get_cell_definition("last_one").type:	
-							t_position.push_back(+i+110);
-							t_position.push_back(+j+10);
-							break;
-							
-							
-					}
-					t_position.push_back(0);
-					generated_positions_at_root.push_back(t_position);
-				}
-				
-				
-			int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();                               //IDs for new cells (positions) will start from the current highest ID
-        
-        
-			cp.positions_to_rank_list(generated_positions_at_root, 
-									m.mesh.bounding_box[0], m.mesh.bounding_box[3], m.mesh.bounding_box[1], m.mesh.bounding_box[4], m.mesh.bounding_box[2], m.mesh.bounding_box[5], 
-									m.mesh.dx, m.mesh.dy, m.mesh.dz, 
-									world, cart_topo, strt_cell_ID);
-			
-			Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + generated_positions_at_root.size()); //Highest ID now is the starting ID + no. of generated coordinates ! 
-		}
-	
-		distribute_cell_positions(cp, mc, world, cart_topo);                                        //Distribute cell positions to individual processes
-		
-		
-		if(IOProcessor(world)){
-			std::cout << "creating " << generated_positions_at_root.size() << " cells ... " << std::endl;
-			
-		}	
-	
-	}
-		
-	for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
-	{	
-		// Here it's simple to get the cell type, because of the ordering of the ids
-		// but should it be part of the MyCells structure ?
-		int cell_type = mc.my_cell_IDs[i]/81;
-		Cell_Definition t_cell_definition = *(cell_definitions_by_index[cell_type]);
-		pCell = create_cell( t_cell_definition, mc.my_cell_IDs[i] ); 
-		pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
-	}
-	
-	return; 
-}
-
-
-void tumor_cell_phenotype_with_signaling( Cell* pCell, Phenotype& phenotype, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo )
-{
-	// std::cout << "Updating tumor cell phenotype in parallel" << std::endl;
-	if (pCell->phenotype.intracellular->need_update())
-	{	
-		if (
-			pCell->type == get_cell_definition("last_one").type
-			&& PhysiCell::PhysiCell_globals.current_time >= 100.0 
-			&& pCell->phenotype.intracellular->get_parameter_value("$time_scale") == 0.0
-		){
-			pCell->phenotype.intracellular->set_parameter_value("$time_scale", 1);
-			pCell->assign_position(pCell->position[0]-300.0, pCell->position[1], 0.0, world, cart_topo);
-		}
-		// set_input_nodes(pCell);
-
-		pCell->phenotype.intracellular->update();
-		
-		// from_nodes_to_cell(pCell, phenotype, dt);
-		color_node(pCell);
-	}	
-}
-
-
-void set_input_nodes(Cell* pCell) {}
-
-void from_nodes_to_cell(Cell* pCell, Phenotype& phenotype, double dt) {}
-
-
-std::vector<std::string> my_coloring_function( Cell* pCell )
-{
-	std::vector< std::string > output( 4 , "rgb(0,0,0)" );
-	
-	if ( !pCell->phenotype.intracellular->get_boolean_variable_value( parameters.strings("node_to_visualize") ) )
-	{
-		output[0] = "rgb(255,0,0)";
-		output[2] = "rgb(125,0,0)";
-		
-	}
-	else{
-		output[0] = "rgb(0, 255,0)";
-		output[2] = "rgb(0, 125,0)";
-	}
-	
-	return output;
-}
-
-void color_node(Cell* pCell){
-	std::string node_name = parameters.strings("node_to_visualize");
-	pCell->custom_data[node_name] = pCell->phenotype.intracellular->get_boolean_variable_value(node_name);
-}
 
 int total_basic_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-	int local_count = all_basic_agents.size();
-	int global_count;
-	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
-	return global_count;
+	(void) world;
+	const int local_count = static_cast<int>(all_basic_agents.size());
+	return DistPhy::mpi::distribute_global_sum(local_count, cart_topo);
 }
-
-
 
 int total_cell_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-	int local_count = (*all_cells).size();
-	int global_count;
-	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
-	return global_count;
+	(void) world;
+	const int local_count = static_cast<int>((*all_cells).size());
+	return DistPhy::mpi::distribute_global_sum(local_count, cart_topo);
 }
 
-
-// Cell count functions
 int total_live_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
+	(void) world;
 	int local_count = 0;
-	#pragma omp parallel for reduction (+: local_count )
-	for (int i = 0; i < (*all_cells).size(); i++)
+	const int cell_count = static_cast<int>((*all_cells).size());
+
+	#pragma omp parallel for reduction(+:local_count)
+	for (int i = 0; i < cell_count; ++i)
 	{
 		Cell* pCell = (*all_cells)[i];
-		if(pCell->phenotype.death.dead==false)
-		{ local_count++;; }
+		if (!pCell->phenotype.death.dead)
+		{
+			++local_count;
+		}
 	}
-	int global_count;
-	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
-	return global_count;
+
+	return DistPhy::mpi::distribute_global_sum(local_count, cart_topo);
 }
 
 int total_dead_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-    int local_count = 0;
-    #pragma omp parallel for reduction (+: local_count )
-    for (int i = 0; i < (*all_cells).size(); i++)
-    {
-        Cell* pCell = (*all_cells)[i];
-        if(pCell->phenotype.death.dead==true)
-        { local_count++; }
-    }
-    int global_count;
-    MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
-    return global_count;
+	(void) world;
+	int local_count = 0;
+	const int cell_count = static_cast<int>((*all_cells).size());
+
+	#pragma omp parallel for reduction(+:local_count)
+	for (int i = 0; i < cell_count; ++i)
+	{
+		Cell* pCell = (*all_cells)[i];
+		if (pCell->phenotype.death.dead)
+		{
+			++local_count;
+		}
+	}
+
+	return DistPhy::mpi::distribute_global_sum(local_count, cart_topo);
 }
 
 int total_necrosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
+	(void) world;
 	int local_count = 0;
-	#pragma omp parallel for reduction (+: local_count )
-	for (int i = 0; i < (*all_cells).size(); i++)
+	const int cell_count = static_cast<int>((*all_cells).size());
+
+	#pragma omp parallel for reduction(+:local_count)
+	for (int i = 0; i < cell_count; ++i)
 	{
 		Cell* pCell = (*all_cells)[i];
-		if( pCell->phenotype.death.dead==false )
-		{ continue; }
-		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_swelling || 
-			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_lysed || 
-			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic )	
-		{ local_count++; }
+		if (pCell->phenotype.death.dead && is_necrotic_phase(pCell))
+		{
+			++local_count;
+		}
 	}
-	int global_count;
-	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
-	return global_count;
+
+	return DistPhy::mpi::distribute_global_sum(local_count, cart_topo);
 }
 
 int total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
-{	
+{
+	(void) world;
 	int local_count = 0;
-	#pragma omp parallel for reduction (+: local_count )
-	for (int i = 0; i < (*all_cells).size(); i++)
+	const int cell_count = static_cast<int>((*all_cells).size());
+
+	#pragma omp parallel for reduction(+:local_count)
+	for (int i = 0; i < cell_count; ++i)
 	{
 		Cell* pCell = (*all_cells)[i];
-		if( pCell->phenotype.death.dead==false )
-		{ continue; }
-		if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic )
-		{ local_count++; }
+		if (pCell->phenotype.death.dead &&
+			pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic)
+		{
+			++local_count;
+		}
 	}
-	int global_count;
-	MPI_Reduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM, 0, cart_topo.mpi_cart_comm);
-	return global_count;
+
+	return DistPhy::mpi::distribute_global_sum(local_count, cart_topo);
 }
->>>>>>> master

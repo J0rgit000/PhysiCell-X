@@ -82,7 +82,7 @@ void setup_tissue( mpi_Environment &world, mpi_Cartesian &cart_topo );
 void setup_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo ); 
 
 
-void change_dirichlet_nodes ( void );
+void change_dirichlet_nodes( mpi_Environment& world );
 
 // helper function to read init files
 std::vector<std::vector<double>>  read_cells_positions(std::string filename, char delimiter, bool header);
@@ -129,3 +129,6 @@ double current_value( double min, double max, double percent );
 
 // helper function to create a sphere of cells of a given radius
 std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius, double sphere_radius);
+
+void write_pressure_oxygen_diagnostics_header( std::ostream& os );
+void write_pressure_oxygen_diagnostics_row( double current_time, std::ostream& os, mpi_Environment& world, mpi_Cartesian& cart_topo );

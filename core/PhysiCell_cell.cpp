@@ -450,7 +450,7 @@ void Cell::advance_bundled_phenotype_functions( double dt_ , mpi_Environment &wo
 	// call the custom code to update the phenotype
 	if( functions.update_phenotype_parallel )
 	{	functions.update_phenotype_parallel( this , phenotype , dt_ , world, cart_topo ); }
-	if( functions.update_phenotype )
+	else if( functions.update_phenotype )
 	{	
 		functions.update_phenotype( this , phenotype , dt_); 
 		set_total_volume( phenotype.volume.total ); 

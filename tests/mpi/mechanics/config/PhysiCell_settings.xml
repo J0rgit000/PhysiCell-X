@@ -23,38 +23,16 @@
     </domain>
 
     <overall>
-<<<<<<< HEAD
         <max_time units="min">800</max_time>
-=======
-<<<<<<< HEAD
-        <max_time units="min">800</max_time>
-=======
-        <max_time units="min">64800</max_time>
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
         <time_units>min</time_units>
         <space_units>micron</space_units>
         <dt_diffusion units="min">0.01</dt_diffusion>
         <dt_mechanics units="min">0.1</dt_mechanics>
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
         <dt_phenotype units="min">1000</dt_phenotype>
     </overall>
 
     <parallel>
         <omp_num_threads>112</omp_num_threads>
-<<<<<<< HEAD
-=======
-=======
-        <dt_phenotype units="min">6</dt_phenotype>
-    </overall>
-
-    <parallel>
-        <omp_num_threads>6</omp_num_threads>
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
     </parallel>
 
     <save>
@@ -210,10 +188,6 @@
                     </substrate>
                 </secretion>
                 <cell_interactions>
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
                     <apoptotic_phagocytosis_rate units="1/min">0.1</apoptotic_phagocytosis_rate>
                     <necrotic_phagocytosis_rate units="1/min">0.11</necrotic_phagocytosis_rate>
                     <other_dead_phagocytosis_rate units="1/min">0</other_dead_phagocytosis_rate>
@@ -222,32 +196,11 @@
                     </live_phagocytosis_rates>
                     <attack_rates>
                         <attack_rate name="cancer cell" units="1/min">0.1</attack_rate>
-<<<<<<< HEAD
-=======
-=======
-                    <apoptotic_phagocytosis_rate units="1/min">0</apoptotic_phagocytosis_rate>
-                    <necrotic_phagocytosis_rate units="1/min">0</necrotic_phagocytosis_rate>
-                    <other_dead_phagocytosis_rate units="1/min">0</other_dead_phagocytosis_rate>
-                    <live_phagocytosis_rates>
-                        <phagocytosis_rate name="cancer cell" units="1/min">0</phagocytosis_rate>
-                    </live_phagocytosis_rates>
-                    <attack_rates>
-                        <attack_rate name="cancer cell" units="1/min">0</attack_rate>
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
                     </attack_rates>
                     <attack_damage_rate units="1/min">1</attack_damage_rate>
                     <attack_duration units="min">0.1</attack_duration>
                     <fusion_rates>
-<<<<<<< HEAD
                         <fusion_rate name="cancer cell" units="1/min">0.1</fusion_rate>
-=======
-<<<<<<< HEAD
-                        <fusion_rate name="cancer cell" units="1/min">0.1</fusion_rate>
-=======
-                        <fusion_rate name="cancer cell" units="1/min">0</fusion_rate>
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
                     </fusion_rates>
                 </cell_interactions>
                 <cell_transformations>
@@ -256,18 +209,8 @@
                     </transformation_rates>
                 </cell_transformations>
                 <cell_integrity>
-<<<<<<< HEAD
                     <damage_rate units="1/min">1.0</damage_rate>
                     <damage_repair_rate units="1/min">0.2</damage_repair_rate>
-=======
-<<<<<<< HEAD
-                    <damage_rate units="1/min">1.0</damage_rate>
-                    <damage_repair_rate units="1/min">0.2</damage_repair_rate>
-=======
-                    <damage_rate units="1/min">0.0</damage_rate>
-                    <damage_repair_rate units="1/min">0.0</damage_repair_rate>
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
                 </cell_integrity>
             </phenotype>
             <custom_data>

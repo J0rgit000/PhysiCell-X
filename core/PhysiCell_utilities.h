@@ -88,7 +88,9 @@ extern std::vector<unsigned int> physicell_random_seeds;
 
 void setup_rng( void );
 void SeedRandom( unsigned int input );
+void SeedRandom( unsigned int input, int mpi_rank );
 void SeedRandom( void );
+unsigned int RandomSeedForRank( unsigned int input, int mpi_rank );
 
 double UniformRandom( void );
 int UniformInt( void );

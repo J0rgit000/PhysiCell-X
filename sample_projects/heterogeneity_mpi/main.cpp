@@ -111,6 +111,56 @@ using namespace PhysiCell;
 
 using namespace DistPhy::mpi; 
 
+namespace
+{
+
+const int pre_simulation_density_steps = 100;
+
+void log_microenvironment_densities( Microenvironment& microenvironment, const std::string& filename ,
+	mpi_Environment& world, mpi_Cartesian& cart_topo )
+{
+	if( world.rank == 0 )
+	{
+		std::ofstream clear_file( filename.c_str() );
+	}
+	MPI_Barrier( cart_topo.mpi_cart_comm );
+
+	std::ofstream log_file( filename.c_str(), std::ios::app );
+	microenvironment.print_densities( log_file, world, cart_topo );
+	log_file.close();
+	MPI_Barrier( cart_topo.mpi_cart_comm );
+}
+
+void run_cell_sinks_and_uptakes_only( double dt)
+{
+	if( all_cells == NULL )
+	{
+		return;
+	}
+
+	#pragma omp parallel for
+	for( int i = 0; i < (int) (*all_cells).size(); i++ )
+	{
+		Cell* pCell = (*all_cells)[i];
+		if( pCell != NULL && pCell->is_out_of_domain == false )
+		{
+			pCell->phenotype.secretion.advance( pCell, pCell->phenotype, dt);
+		}
+	}
+}
+
+void run_pre_simulation_density_steps( Microenvironment& microenvironment, double dt,
+	mpi_Environment& world, mpi_Cartesian& cart_topo )
+{
+	for( int step = 0; step < pre_simulation_density_steps; step++ )
+	{
+		microenvironment.simulate_diffusion_decay( dt, world, cart_topo );
+		run_cell_sinks_and_uptakes_only( dt);
+	}
+}
+
+}
+
 int main( int argc, char* argv[] )
 {
     
@@ -167,7 +217,7 @@ int main( int argc, char* argv[] )
 	//PhysiCell setup
  	
 	//Set mechanics voxel size, must be >= Diffusion voxel size
-	double mechanics_voxel_size = 20;
+	double mechanics_voxel_size = 30;
     
 /*=========================================================*/
 /* Calling the parallel version of Cell Container creation */
@@ -196,7 +246,7 @@ int main( int argc, char* argv[] )
 	sprintf( filename , "%s/initial" , PhysiCell_settings.folder.c_str() ); 
 	
 	//Use the parallel version of the function for XML file writing
-	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo );  
+	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
 	
 	//Save a SVG cross section through z = 0, after setting its length bar to 200 microns 
 	PhysiCell_SVG_options.length_bar = 200; 
@@ -208,11 +258,33 @@ int main( int argc, char* argv[] )
 	//Use the parallel version of the function for SVG file plotting
 	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() ); 
     SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
+
+	#ifdef TEST_PRE_SIMULATION_DENSITY_STEPS
+	log_microenvironment_densities( microenvironment, PhysiCell_settings.folder + "/initial_dens.log", world, cart_topo );
+	run_pre_simulation_density_steps( microenvironment, diffusion_dt, world, cart_topo );
+	log_microenvironment_densities( microenvironment, PhysiCell_settings.folder + "/final_dens.log", world, cart_topo );
+	
+	MPI_Abort(cart_topo.mpi_cart_comm, 0); //This is just to test the pre-simulation density steps. Remove this line to run the full simulation.
+    #endif
+
 	
 	//Set the performance timers 
 	BioFVM::RUNTIME_TIC();
 	BioFVM::TIC();
 	
+	std::ofstream report_file;
+	if( world.rank == 0 )
+	{
+        sprintf(filename , "%s/simulation_report.tsv" , PhysiCell_settings.folder.c_str() );
+        report_file.open(filename);     // create the data log file 
+        report_file << "timepoint";
+        report_file << "\tbasic_agents\tcell_agents\talive\tdead\tonly_apoptotic\tnecrotic\tdead_but_ghost\tnecrotic_ghost"<<std::endl;;
+		// report_file <<	"apoptotic_and_14\tapoptotic_not_14" <<std::endl;;
+		std::cout   << "Apoptotic Code "<< PhysiCell_constants::apoptotic <<std::endl;;
+		std::cout   << "necrotic_swelling Code "<< PhysiCell_constants::necrotic_swelling << std::endl;;
+		std::cout   << "necrotic_lysed Code "<< PhysiCell_constants::necrotic_lysed << std::endl;;
+		std::cout   << "necrotic Code "<< PhysiCell_constants::necrotic  << std::endl;;
+	}
 	//Main loop of the program
 	try 
 	{	
@@ -230,7 +302,7 @@ int main( int argc, char* argv[] )
 					sprintf( filename , "%s/output%08u" , PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index ); 
 					
 					//Use the parallel version of the function for XML file writing
-					//save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
+					save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
 				}
 				
 				PhysiCell_globals.full_output_index++; 
@@ -263,7 +335,9 @@ int main( int argc, char* argv[] )
 			((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time, world, cart_topo);
 			
 			PhysiCell_globals.current_time += diffusion_dt;
-		}		
+		}
+			report_file.close();
+		
 	}
 	catch( const std::exception& e )
 	{ 
@@ -286,7 +360,7 @@ int main( int argc, char* argv[] )
 	}
 	
 	//Gracefully shut-down MPI 
-  world.Finalize(); 
+  	world.Finalize(); 
 
 	return 0; 
 }

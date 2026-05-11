@@ -23,28 +23,12 @@
     </domain>
 
     <overall>
-<<<<<<< HEAD
         <max_time units="min">100</max_time>
-=======
-<<<<<<< HEAD
-        <max_time units="min">100</max_time>
-=======
-        <max_time units="min">64800</max_time>
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
         <time_units>min</time_units>
         <space_units>micron</space_units>
         <dt_diffusion units="min">0.01</dt_diffusion>
         <dt_mechanics units="min">0.1</dt_mechanics>
-<<<<<<< HEAD
         <dt_phenotype units="min">200</dt_phenotype>
-=======
-<<<<<<< HEAD
-        <dt_phenotype units="min">200</dt_phenotype>
-=======
-        <dt_phenotype units="min">6</dt_phenotype>
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
     </overall>
 
     <parallel>

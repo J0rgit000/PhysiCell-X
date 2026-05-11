@@ -311,14 +311,13 @@ Cycle_Model* resolve_cycle_model_from_definition_state(Cell* pCell, Cell_Definit
 	return pMainModel;
 }
 
-void apply_cycle_model_safety_net(Cell* pCell, Cell_Definition* pCD)
+void sync_cycle_to_model_preserving_state(Cell* pCell, Cycle_Model* pModel)
 {
 	if( pCell == NULL )
 	{
 		return;
 	}
 
-	Cycle_Model* pModel = resolve_cycle_model_from_definition_state( pCell , pCD );
 	if( pModel == NULL )
 	{
 		return;
@@ -366,6 +365,17 @@ void apply_cycle_model_safety_net(Cell* pCell, Cell_Definition* pCD)
 			received_transition_rates[i].begin() + col_count,
 			pCell->phenotype.cycle.data.transition_rates[i].begin() );
 	}
+}
+
+void apply_cycle_model_safety_net(Cell* pCell, Cell_Definition* pCD)
+{
+	if( pCell == NULL )
+	{
+		return;
+	}
+
+	Cycle_Model* pModel = resolve_cycle_model_from_definition_state( pCell , pCD );
+	sync_cycle_to_model_preserving_state( pCell , pModel );
 }
 
 void pack_custom_data_values_light(Custom_Cell_Data& custom_data, std::vector<char>& buffer, int& len_buffer, int& position)
@@ -660,6 +670,7 @@ void Cell::pack(std::vector<char>& snd_buffer, int& len_buffer, int &position){
 
     this->state.pack(snd_buffer, len_buffer, position);
 
+	pack_cycle_model_selector_light( this , snd_buffer, len_buffer, position );
     this->phenotype.pack(snd_buffer, len_buffer, position);
 
     pack_buff(this->is_out_of_domain, snd_buffer, len_buffer, position);
@@ -749,6 +760,8 @@ void Cell::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position)
 
    this->state.unpack(rcv_buffer, len_buffer, position);
 
+   Cycle_Model_Selector cycle_selector = unpack_cycle_model_selector_light( rcv_buffer, len_buffer, position );
+
    this->phenotype.unpack(rcv_buffer, len_buffer, position);
    
 	unpack_buff(this->is_out_of_domain, rcv_buffer, len_buffer, position);
@@ -797,10 +810,8 @@ void Cell::unpack(std::vector<char>& rcv_buffer, int& len_buffer, int& position)
 	unpack_buff(this->velocity, rcv_buffer, len_buffer, position);
 
     Cell_Definition* pCD = find_cell_definition(this->type);
-    if(pCD != NULL)
-    {
-        this->phenotype.cycle.sync_to_cycle_model(pCD->functions.cycle_model);
-    }
+	Cycle_Model* pModel = resolve_cycle_model_selector( pCD , cycle_selector );
+	sync_cycle_to_model_preserving_state( this , pModel );
 
 } 
 

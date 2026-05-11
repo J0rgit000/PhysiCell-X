@@ -200,10 +200,8 @@ int main( int argc, char* argv[] )
 
 	BioFVM::RUNTIME_TIC();
 	BioFVM::TIC();
-<<<<<<< HEAD
 
 	
-=======
 	
 	std::ofstream report_file;
 	if( world.rank == 0 )
@@ -215,7 +213,6 @@ int main( int argc, char* argv[] )
 
 	}
 
->>>>>>> master
 	// main loop 
 	try 
 	{		
@@ -230,9 +227,7 @@ int main( int argc, char* argv[] )
 				{	
 					sprintf( filename , "%s/output%08u" , PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index ); 
 					
-<<<<<<< HEAD
 					save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time, world, cart_topo ); 
-=======
 					// save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time ); 
 					
 					// sprintf( filename , "%s/states_%08u.csv", PhysiCell_settings.folder.c_str(), PhysiCell_globals.full_output_index);
@@ -254,7 +249,6 @@ int main( int argc, char* argv[] )
 						report_file << "\t" << basic_agents<< "\t" << cell_agents << "\t" << alive;
 						report_file << "\t" << dead << "\t" << apoptotic << "\t" << necrotic <<std::endl;
 					}
->>>>>>> master
 	
 				}
 				
@@ -290,15 +284,12 @@ int main( int argc, char* argv[] )
 			
 			PhysiCell_globals.current_time += diffusion_dt;
 		}
-<<<<<<< HEAD
-=======
 
 		if( PhysiCell_settings.enable_full_saves == true )
 		{			
 			// log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);
 			report_file.close();
 		}
->>>>>>> master
 	}
 	catch( const std::exception& e )
 	{ // reference to the base of a polymorphic object

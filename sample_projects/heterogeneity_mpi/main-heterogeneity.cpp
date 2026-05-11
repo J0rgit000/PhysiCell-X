@@ -207,11 +207,7 @@ int main( int argc, char* argv[] )
 	
 	//Use the parallel version of the function for SVG file plotting
 	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() ); 
-<<<<<<< HEAD
     SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
-=======
-	SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, world, cart_topo );
->>>>>>> master
 	
 	//Set the performance timers 
 	BioFVM::RUNTIME_TIC();

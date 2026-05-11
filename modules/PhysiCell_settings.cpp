@@ -553,7 +553,8 @@ void PhysiCell_Settings::read_from_pugixml( mpi_Environment &world ) //Updated
 		{
 			if(IOProcessor(world))
 				std::cout << "Using system clock for random seed" << std::endl;
-			SeedRandom();
+			unsigned int seed = std::chrono::system_clock::now().time_since_epoch().count();
+			SeedRandom(seed, world.rank);
 		}
 		else
 		{
@@ -566,7 +567,7 @@ void PhysiCell_Settings::read_from_pugixml( mpi_Environment &world ) //Updated
 					std::cout << "ERROR: " << random_seed << " is not a valid random seed. It must be an integer. Fix this within <options>." << std::endl;
 				exit(-1);
 			}
-			SeedRandom(seed);
+			SeedRandom(seed, world.rank);
 		}
 		// other options can go here, eventually 
 	}

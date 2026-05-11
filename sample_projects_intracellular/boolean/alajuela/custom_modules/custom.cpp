@@ -67,12 +67,75 @@
 
 #include "./custom.h"
 
+#include <cctype>
+#include <iomanip>
+#include <limits>
+
+namespace
+{
+enum PressureOxygenMetricIndex
+{
+	po_cell_count = 0,
+	po_live_cell_count,
+	po_pressure_sum,
+	po_live_pressure_sum,
+	po_oxygen_sum,
+	po_live_oxygen_sum,
+	po_metric_count
+};
+
+int accumulator_offset( int slot )
+{
+	return slot * po_metric_count;
+}
+
+void accumulate_pressure_and_oxygen( std::vector<double>& accumulator, int slot, double pressure, double oxygen, bool is_live )
+{
+	const int offset = accumulator_offset( slot );
+	accumulator[offset + po_cell_count] += 1.0;
+	accumulator[offset + po_pressure_sum] += pressure;
+	accumulator[offset + po_oxygen_sum] += oxygen;
+
+	if( is_live )
+	{
+		accumulator[offset + po_live_cell_count] += 1.0;
+		accumulator[offset + po_live_pressure_sum] += pressure;
+		accumulator[offset + po_live_oxygen_sum] += oxygen;
+	}
+}
+
+double mean_or_nan( double sum, double count )
+{
+	if( count <= 0.0 )
+	{
+		return std::numeric_limits<double>::quiet_NaN();
+	}
+
+	return sum / count;
+}
+
+std::string diagnostics_label( const std::string& raw_name )
+{
+	std::string label = raw_name;
+
+	for( char& ch : label )
+	{
+		if( std::isalnum( static_cast<unsigned char>( ch ) ) == 0 )
+		{
+			ch = '_';
+		}
+	}
+
+	return label;
+}
+}
+
 void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo )
 {
 	// set the random seed 
 	if (parameters.ints.find_index("random_seed") != -1)
 	{
-		SeedRandom(parameters.ints("random_seed"));
+		SeedRandom(parameters.ints("random_seed"), world.rank);
 	}
 	
 	/* 
@@ -245,11 +308,6 @@ std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius
 void setup_tissue(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	std::vector<std::vector<double>> positions;
-	
-	if ( parameters.bools("read_init") )
-	{
-		std::string csv_fname = parameters.strings("init_cells_filename");
-		positions = read_cells_positions(csv_fname, ',', true); // estava com a \t 
 
 	if( world.rank == 0 )
 	{
@@ -298,7 +356,7 @@ void setup_tissue(mpi_Environment &world, mpi_Cartesian &cart_topo)
 }
 
 
-void change_dirichlet_nodes ( void )
+void change_dirichlet_nodes( mpi_Environment& world )
 {
 
 	double o2_conc;
@@ -317,14 +375,20 @@ void change_dirichlet_nodes ( void )
 	std::string csv_fname = parameters.strings("blood_source_file");
 	positions = read_cells_positions(csv_fname, '\t', true);
 
+	const double local_x_min = microenvironment.mesh.local_bounding_box[0];
+	const double local_x_max = microenvironment.mesh.local_bounding_box[3];
+
 	for (int i = 0; i < positions.size(); i++)
 	{
-		int x = (positions[i][0]);
-		int y = ( positions[i][1]);
-		int z = ( positions[i][2]);
-		if (x >= microenvironment.mesh.local_bounding_box[0] && x <= microenvironment.mesh.local_bounding_box[3] )
+		const double x = positions[i][0];
+		const bool in_local_x_range =
+			( x >= local_x_min ) &&
+			( world.rank == world.size - 1 ? x <= local_x_max : x < local_x_max );
+
+		if( in_local_x_range )
 		{
-			microenvironment.set_substrate_dirichlet_activation( 1,  microenvironment.voxel_index(x,y,z),true );
+			int local_voxel_index = microenvironment.mesh.nearest_lcl_voxel_index( positions[i] );
+			microenvironment.set_substrate_dirichlet_activation( 1 , local_voxel_index , true );
 		}
 		
 		// microenvironment.add_dirichlet_node( microenvironment.voxel_index(data[0],data[1],data[2]) , dirichlet_drug );
@@ -476,4 +540,112 @@ void treatment_function (mpi_Environment &world, mpi_Cartesian &cart_topo)
 			BioFVM::microenvironment.set_substrate_dirichlet_activation(treatment_substrate_index, false);	
 		}
 	}
+}
+
+void write_pressure_oxygen_diagnostics_header( std::ostream& os )
+{
+	os << "time_min"
+	   << "\ttotal_cells"
+	   << "\tlive_cells"
+	   << "\tdead_cells"
+	   << "\tmean_pressure_all"
+	   << "\tmean_pressure_live"
+	   << "\tmean_oxygen_all"
+	   << "\tmean_oxygen_live";
+
+	for( int i = 0; i < cell_definitions_by_index.size(); i++ )
+	{
+		const std::string prefix = diagnostics_label( cell_definitions_by_index[i]->name );
+		os << '\t' << prefix << "_cells"
+		   << '\t' << prefix << "_live_cells"
+		   << '\t' << prefix << "_mean_pressure_all"
+		   << '\t' << prefix << "_mean_pressure_live"
+		   << '\t' << prefix << "_mean_oxygen_all"
+		   << '\t' << prefix << "_mean_oxygen_live";
+	}
+
+	os << std::endl;
+}
+
+void write_pressure_oxygen_diagnostics_row( double current_time, std::ostream& os, mpi_Environment& world, mpi_Cartesian& cart_topo )
+{
+	static int oxygen_substrate_index = microenvironment.find_density_index( "oxygen" );
+
+	const int slot_count = static_cast<int>( cell_definitions_by_index.size() ) + 1;
+	std::vector<double> local_accumulator( slot_count * po_metric_count , 0.0 );
+	std::vector<double> global_accumulator;
+
+	if( IOProcessor( world ) )
+	{
+		global_accumulator.resize( slot_count * po_metric_count , 0.0 );
+	}
+
+	for( int i = 0; i < (*all_cells).size(); i++ )
+	{
+		Cell* pCell = (*all_cells)[i];
+		const bool is_live = ( pCell->phenotype.death.dead == false );
+		const double pressure = pCell->state.simple_pressure;
+		const double oxygen = pCell->nearest_density_vector()[oxygen_substrate_index];
+
+		accumulate_pressure_and_oxygen( local_accumulator, 0, pressure, oxygen, is_live );
+
+		for( int j = 0; j < cell_definitions_by_index.size(); j++ )
+		{
+			if( cell_definitions_by_index[j]->type == pCell->type )
+			{
+				accumulate_pressure_and_oxygen( local_accumulator, j + 1, pressure, oxygen, is_live );
+				break;
+			}
+		}
+	}
+
+	MPI_Reduce(
+		local_accumulator.data(),
+		IOProcessor( world ) ? global_accumulator.data() : NULL,
+		static_cast<int>( local_accumulator.size() ),
+		MPI_DOUBLE,
+		MPI_SUM,
+		0,
+		cart_topo.mpi_cart_comm
+	);
+
+	if( IOProcessor( world ) == 0 )
+	{
+		return;
+	}
+
+	os << std::fixed << std::setprecision( 6 )
+	   << current_time;
+
+	for( int slot = 0; slot < slot_count; slot++ )
+	{
+		const int offset = accumulator_offset( slot );
+		const double cell_count = global_accumulator[offset + po_cell_count];
+		const double live_cell_count = global_accumulator[offset + po_live_cell_count];
+		const double pressure_sum = global_accumulator[offset + po_pressure_sum];
+		const double live_pressure_sum = global_accumulator[offset + po_live_pressure_sum];
+		const double oxygen_sum = global_accumulator[offset + po_oxygen_sum];
+		const double live_oxygen_sum = global_accumulator[offset + po_live_oxygen_sum];
+
+		if( slot == 0 )
+		{
+			os << '\t' << cell_count
+			   << '\t' << live_cell_count
+			   << '\t' << ( cell_count - live_cell_count )
+			   << '\t' << mean_or_nan( pressure_sum , cell_count )
+			   << '\t' << mean_or_nan( live_pressure_sum , live_cell_count )
+			   << '\t' << mean_or_nan( oxygen_sum , cell_count )
+			   << '\t' << mean_or_nan( live_oxygen_sum , live_cell_count );
+			continue;
+		}
+
+		os << '\t' << cell_count
+		   << '\t' << live_cell_count
+		   << '\t' << mean_or_nan( pressure_sum , cell_count )
+		   << '\t' << mean_or_nan( live_pressure_sum , live_cell_count )
+		   << '\t' << mean_or_nan( oxygen_sum , cell_count )
+		   << '\t' << mean_or_nan( live_oxygen_sum , live_cell_count );
+	}
+
+	os << std::endl;
 }

@@ -1,1152 +1,288 @@
-/*
-###############################################################################
-# If you use PhysiCell in your project, please cite PhysiCell and the version #
-# number, such as below:                                                      #
-#                                                                             #
-# We implemented and solved the model using PhysiCell (Version x.y.z) [1].    #
-#                                                                             #
-# [1] A Ghaffarizadeh, R Heiland, SH Friedman, SM Mumenthaler, and P Macklin, #
-#     PhysiCell: an Open Source Physics-Based Cell Simulator for Multicellu-  #
-#     lar Systems, PLoS Comput. Biol. 14(2): e1005991, 2018                   #
-#     DOI: 10.1371/journal.pcbi.1005991                                       #
-#                                                                             #
-# See VERSION.txt or call get_PhysiCell_version() to get the current version  #
-#     x.y.z. Call display_citations() to get detailed information on all cite-#
-#     able software used in your PhysiCell application.                       #
-#                                                                             #
-# Because PhysiCell extensively uses BioFVM, we suggest you also cite BioFVM  #
-#     as below:                                                               #
-#                                                                             #
-# We implemented and solved the model using PhysiCell (Version x.y.z) [1],    #
-# with BioFVM [2] to solve the transport equations.                           #
-#                                                                             #
-# [1] A Ghaffarizadeh, R Heiland, SH Friedman, SM Mumenthaler, and P Macklin, #
-#     PhysiCell: an Open Source Physics-Based Cell Simulator for Multicellu-  #
-#     lar Systems, PLoS Comput. Biol. 14(2): e1005991, 2018                   #
-#     DOI: 10.1371/journal.pcbi.1005991                                       #
-#                                                                             #
-# [2] A Ghaffarizadeh, SH Friedman, and P Macklin, BioFVM: an efficient para- #
-#     llelized diffusive transport solver for 3-D biological simulations,     #
-#     Bioinformatics 32(8): 1256-8, 2016. DOI: 10.1093/bioinformatics/btv730  #
-#                                                                             #
-###############################################################################
-#                                                                             #
-# BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
-#                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
-# All rights reserved.                                                        #
-#                                                                             #
-# Redistribution and use in source and binary forms, with or without          #
-# modification, are permitted provided that the following conditions are met: #
-#                                                                             #
-# 1. Redistributions of source code must retain the above copyright notice,   #
-# this list of conditions and the following disclaimer.                       #
-#                                                                             #
-# 2. Redistributions in binary form must reproduce the above copyright        #
-# notice, this list of conditions and the following disclaimer in the         #
-# documentation and/or other materials provided with the distribution.        #
-#                                                                             #
-# 3. Neither the name of the copyright holder nor the names of its            #
-# contributors may be used to endorse or promote products derived from this   #
-# software without specific prior written permission.                         #
-#                                                                             #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" #
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE   #
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE  #
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE   #
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR         #
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF        #
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS    #
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN     #
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)     #
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE  #
-# POSSIBILITY OF SUCH DAMAGE.                                                 #
-#                                                                             #
-###############################################################################
-*/
-
-/*================================================================================
-+ If you use PhysiCell-X in your project, we would really appreciate if you can  +
-+																																							   +
-+ [1] Cite the PhysiCell-X repository by giving its URL												   +
-+																																							   +
-+ [2] Cite BioFVM-X: 																													   +
-+		Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca,   +
-+		and Alfonso Valencia. "BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological + 
-+		Systems." In International Conference on Computational Methods in Systems    +
-+		Biology, pp. 266-279. Springer, Cham, 2021. 																 +
-=================================================================================*/
-
 #include "./custom.h"
+
+#include <cctype>
+#include <fstream>
+#include <sstream>
+#include <stdexcept>
+
+#include "../../../../modules/PhysiCell_pugixml.h"
 #include "../../../../modules/PhysiCell_settings.h"
-#include "../../../../DistPhy/DistPhy_Utils.h"
-#include "../../../../DistPhy/DistPhy_Collective.h"
 
-using namespace DistPhy::mpi;
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
-
-void phenotype_function( Cell* pCell, Phenotype& phenotype, double dt )
-{ return; }
-
-void custom_function( Cell* pCell, Phenotype& phenotype , double dt )
-{ return; } 
-
-void contact_function( Cell* pMe, Phenotype& phenoMe , Cell* pOther, Phenotype& phenoOther , double dt )
-{ return; } 
-
-void create_cell_types( void )
+namespace
 {
-	// set the random seed 
-	if (parameters.ints.find_index("random_seed") != -1)
-	{
-		SeedRandom(parameters.ints("random_seed"));
-	}
-	
-	/* 
-	   Put any modifications to default cell definition here if you 
-	   want to have "inherited" by other cell types. 
-	   
-	   This is a good place to set default functions. 
-	*/ 
-	
-	initialize_default_cell_definition(); 
-	cell_defaults.phenotype.secretion.sync_to_microenvironment( &microenvironment ); 
-	
-	cell_defaults.functions.volume_update_function = standard_volume_update_function;
-	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
 
-	cell_defaults.functions.update_migration_bias = NULL; 
-	cell_defaults.functions.update_phenotype = NULL; // update_cell_and_death_parameters_O2_based; 
-	cell_defaults.functions.custom_cell_rule = NULL; 
-	cell_defaults.functions.contact_function = NULL; 
-	
-	cell_defaults.functions.add_cell_basement_membrane_interactions = NULL; 
-	cell_defaults.functions.calculate_distance_to_membrane = NULL; 
-	
-	/*
-	   This parses the cell definitions in the XML config file. 
-	*/
-	
-	initialize_cell_definitions_from_pugixml(); 
-
-	/*
-	   This builds the map of cell definitions and summarizes the setup. 
-	*/
-		
-	build_cell_definitions_maps(); 
-
-	/*
-	   This intializes cell signal and response dictionaries 
-	*/
-
-	setup_signal_behavior_dictionaries(); 	
-
-	/* 
-	   Put any modifications to individual cell definitions here. 
-	   
-	   This is a good place to set custom functions. 
-	*/ 
-	
-	cell_defaults.functions.update_phenotype = phenotype_function; 
-	cell_defaults.functions.custom_cell_rule = custom_function; 
-	cell_defaults.functions.contact_function = contact_function; 
-
-	Cell_Definition* pCD = find_cell_definition( "cancer cell"); 
-	pCD->functions.update_phenotype = tumor_cell_phenotype_with_oncoprotein; 
-
-	pCD->parameters.o2_proliferation_saturation = 38; 
-	pCD->parameters.o2_reference = 38; 
-
-	/*
-	   This builds the map of cell definitions and summarizes the setup. 
-	*/
-		
-	//display_cell_definitions( std::cout ); 
-	
-<<<<<<< HEAD
-=======
-=======
-void bacteria_phenotype( Cell* pCell, Phenotype& phenotype, double dt )
+struct SeedCell
 {
-	// find my cell definition 
-	static Cell_Definition* pCD = find_cell_definition( pCell->type_name ); 
+	int cell_id = -1;
+	int type_id = 0;
+	double x = 0.0;
+	double y = 0.0;
+	double z = 0.0;
+};
 
-	// sample resource, quorum, and toxin 
-
-	static int nR = microenvironment.find_density_index( "resource" ); 
-	static int nDebris = microenvironment.find_density_index( "debris" ); 
-	static int nQuorum = microenvironment.find_density_index( "quorum" );
-	static int nToxin = microenvironment.find_density_index( "toxin" ); 
-
-	// if dead: stop exporting quorum factor. 
-	// also, replace phenotype function 
-	if( phenotype.death.dead == true )
+std::string trim_copy( const std::string& input )
+{
+	size_t start = 0;
+	while( start < input.size() && std::isspace( static_cast<unsigned char>( input[start] ) ) )
 	{
-		phenotype.secretion.net_export_rates[nQuorum] = 0; 
-		phenotype.secretion.net_export_rates[nToxin] = 0; 
-
-		phenotype.secretion.net_export_rates[nDebris] = phenotype.volume.total; 
-		
-		pCell->functions.update_phenotype = NULL; 
-		return; 
+		++start;
 	}
 
-	double * samples = pCell->nearest_density_vector(); 
-	double R = samples[nR];
-	double Q = samples[nQuorum]; 
-	double Tox = samples[nToxin]; 
+	size_t end = input.size();
+	while( end > start && std::isspace( static_cast<unsigned char>( input[end - 1] ) ) )
+	{
+		--end;
+	}
 
-	// resource increases cycle entry 
-	double base_val = pCD->phenotype.cycle.data.exit_rate(0); 
-	double max_val = base_val * 10.0; 
-	static double min_cycle_resource = pCD->custom_data["cycling_entry_threshold_resource"]; // 0.15 
-	phenotype.cycle.data.exit_rate(0) = max_val * linear_response_function( R, min_cycle_resource, 1 );
+	return input.substr( start, end - start );
+}
 
-	// resource decreses necrosis
+std::vector<std::string> split_csv_line( const std::string& line )
+{
+	std::vector<std::string> tokens;
+	std::stringstream stream( line );
+	std::string token;
 
-	max_val = 0.0028;  
-	static int nNecrosis = phenotype.death.find_death_model_index( PhysiCell_constants::necrosis_death_model );
-	static double saturation_necrosis_resource = pCD->custom_data["necrosis_saturation_resource"]; //0.075
-	static double threshold_necrosis_resource = pCD->custom_data["necrosis_threshold_resource"]; // 0.15
-	phenotype.death.rates[nNecrosis] = max_val * 
-		decreasing_linear_response_function( R, saturation_necrosis_resource, threshold_necrosis_resource );
+	while( std::getline( stream, token, ',' ) )
+	{
+		tokens.push_back( trim_copy( token ) );
+	}
 
-	// resource decreases motile speed  
+	return tokens;
+}
 
-	double signal = R; 
-	base_val = pCD->phenotype.motility.migration_speed; 
-	double max_response = 0.0; 
-	static double motility_resource_halfmax = 
-		pCD->custom_data["migration_speed_halfmax"]; // 0.25 // parameters.doubles("bacteria_motility_resource_halfmax");
-	double hill = Hill_response_function( signal, motility_resource_halfmax , 1.5);  
-	phenotype.motility.migration_speed = base_val + (max_response-base_val)*hill;
+std::string resolve_seed_cells_path( void )
+{
+	pugi::xml_node node = physicell_config_root.child( "initial_conditions" ).child( "cell_positions" );
+	if( !node )
+	{
+		throw std::runtime_error( "Missing initial_conditions/cell_positions in mechanics validation config." );
+	}
 
-	// quorum and resource increases motility bias 
-	signal = Q+R; 
-	base_val = pCD->phenotype.motility.migration_speed; 
-	max_response = 1.0; 
-	static double bias_halfmax = pCD->custom_data["migration_bias_halfmax"]; 
-		// 0.5 //  parameters.doubles("bacteria_migration_bias_halfmax");
-	hill = Hill_response_function( signal, bias_halfmax , 1.5);  
-	phenotype.motility.migration_bias = base_val + (max_response-base_val)*hill; 
+	if( node.attribute( "enabled" ).empty() || node.attribute( "enabled" ).as_bool() == false )
+	{
+		throw std::runtime_error( "Mechanics validation requires initial_conditions/cell_positions enabled=true." );
+	}
 
-	// damage increases death 
-	static int nApoptosis = phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model );
+	const std::string folder = xml_get_string_value( node, "folder" );
+	const std::string filename = xml_get_string_value( node, "filename" );
 
-	signal = pCell->phenotype.cell_integrity.damage;
-	base_val = pCD->phenotype.death.rates[nApoptosis]; 
+	if( folder.empty() )
+	{
+		return filename;
+	}
 
-	static double damage_halfmax = pCD->custom_data["damage_halfmax"]; 
-	static double relative_max_damage_death = pCD->custom_data["relative_max_damage_death"]; 
-	max_response = base_val * relative_max_damage_death; 
+	return folder + "/" + filename;
+}
 
-		// 36 // parameters.doubles("bacteria_damage_halfmax");
-	hill = Hill_response_function( signal , damage_halfmax , 1.5 ); 
-	phenotype.death.rates[nApoptosis] = base_val + (max_response-base_val)*hill; 
+std::vector<SeedCell> read_seed_cells_from_config( void )
+{
+	const std::string path = resolve_seed_cells_path();
+	std::ifstream stream( path );
+	if( !stream )
+	{
+		throw std::runtime_error( "Unable to open mechanics validation cell layout: " + path );
+	}
 
-	return; 
+	std::vector<SeedCell> cells;
+	std::string line;
+	while( std::getline( stream, line ) )
+	{
+		const std::string trimmed = trim_copy( line );
+		if( trimmed.empty() || trimmed[0] == '#' )
+		{
+			continue;
+		}
+
+		const std::vector<std::string> fields = split_csv_line( trimmed );
+		if( fields.size() != 5 )
+		{
+			throw std::runtime_error(
+				"Mechanics validation CSV must have 5 columns: cell_id,x,y,z,type_id. Bad line: " + trimmed );
+		}
+
+		if( !fields[0].empty() && !std::isdigit( static_cast<unsigned char>( fields[0][0] ) )
+			&& fields[0][0] != '-' )
+		{
+			continue;
+		}
+
+		SeedCell cell;
+		cell.cell_id = std::stoi( fields[0] );
+		cell.x = std::stod( fields[1] );
+		cell.y = std::stod( fields[2] );
+		cell.z = std::stod( fields[3] );
+		cell.type_id = std::stoi( fields[4] );
+		cells.push_back( cell );
+	}
+
+	if( cells.empty() )
+	{
+		throw std::runtime_error( "Mechanics validation CSV does not define any cells." );
+	}
+
+	return cells;
+}
+
+void make_definition_mechanics_only( Cell_Definition& definition, bool parallel )
+{
+	definition.functions.volume_update_function = standard_volume_update_function;
+	definition.functions.update_velocity = standard_update_cell_velocity;
+	if( parallel )
+	{
+		definition.functions.update_velocity_parallel = standard_update_cell_velocity;
+	}
+	definition.functions.update_migration_bias = NULL;
+	definition.functions.update_phenotype = NULL;
+	definition.functions.custom_cell_rule = NULL;
+	definition.functions.contact_function = NULL;
+	definition.functions.add_cell_basement_membrane_interactions = NULL;
+	definition.functions.calculate_distance_to_membrane = NULL;
+
+	for( size_t i = 0; i < definition.phenotype.cycle.data.transition_rates.size(); ++i )
+	{
+		for( size_t j = 0; j < definition.phenotype.cycle.data.transition_rates[i].size(); ++j )
+		{
+			definition.phenotype.cycle.data.transition_rates[i][j] = 0.0;
+		}
+	}
+
+	for( size_t i = 0; i < definition.phenotype.death.rates.size(); ++i )
+	{
+		definition.phenotype.death.rates[i] = 0.0;
+	}
+}
+
+void initialize_mechanics_cell_types( bool parallel, DistPhy::mpi::mpi_Environment* world = NULL,
+	DistPhy::mpi::mpi_Cartesian* cart_topo = NULL )
+{
+	if( parameters.ints.find_index( "random_seed" ) != -1 )
+	{
+		SeedRandom( parameters.ints( "random_seed" ) );
+	}
+
+	initialize_default_cell_definition();
+	cell_defaults.phenotype.secretion.sync_to_microenvironment( &microenvironment );
+	make_definition_mechanics_only( cell_defaults, parallel );
+
+	if( parallel )
+	{
+		initialize_cell_definitions_from_pugixml( *world, *cart_topo );
+		build_cell_definitions_maps();
+		setup_signal_behavior_dictionaries( *world, *cart_topo );
+	}
+	else
+	{
+		DistPhy::mpi::mpi_Environment serial_world;
+		DistPhy::mpi::mpi_Cartesian serial_cart_topo;
+		serial_world.size = 1;
+		serial_world.rank = 0;
+		serial_world.init_comm = MPI_COMM_NULL;
+		initialize_cell_definitions_from_pugixml( physicell_config_root, serial_world, serial_cart_topo );
+		build_cell_definitions_maps();
+		setup_signal_behavior_dictionaries( serial_world, serial_cart_topo );
+	}
+
+	build_cell_definitions_maps();
+
+	Cell_Definition* definition = find_cell_definition( "cancer cell" );
+	if( definition == NULL )
+	{
+		throw std::runtime_error( "Mechanics validation config must define a cell_definition named 'cancer cell'." );
+	}
+
+	make_definition_mechanics_only( *definition, parallel );
+	build_cell_definitions_maps();
+}
+
+void create_seed_cell( const SeedCell& seed )
+{
+	Cell_Definition* definition = find_cell_definition( seed.type_id );
+	if( definition == NULL )
+	{
+		throw std::runtime_error( "Unable to map mechanics validation cell type ID " + std::to_string( seed.type_id ) );
+	}
+
+	Cell* cell = create_cell( *definition, seed.cell_id );
+	cell->assign_position( seed.x, seed.y, seed.z );
+}
+
+void create_seed_cell( const SeedCell& seed, DistPhy::mpi::mpi_Environment& world,
+	DistPhy::mpi::mpi_Cartesian& cart_topo )
+{
+	Cell_Definition* definition = find_cell_definition( seed.type_id );
+	if( definition == NULL )
+	{
+		throw std::runtime_error( "Unable to map mechanics validation cell type ID " + std::to_string( seed.type_id ) );
+	}
+
+	Cell* cell = create_cell( *definition, seed.cell_id );
+	cell->assign_position( seed.x, seed.y, seed.z, world, cart_topo );
+}
+
+bool is_in_local_x_range( double x, const Microenvironment& microenvironment,
+	DistPhy::mpi::mpi_Environment& world )
+{
+	const double local_x_min = microenvironment.mesh.local_bounding_box[0];
+	const double local_x_max = microenvironment.mesh.local_bounding_box[3];
+	return x >= local_x_min && ( world.rank == world.size - 1 ? x <= local_x_max : x < local_x_max );
+}
+
 }
 
 void create_cell_types( void )
 {
-	// Use the same random seed so that future experiments have the 
-	// same initial histogram of oncoprotein, even if threading means 
-	// that future division and other events are still not identical 
-	// for all runs 
-	
-	SeedRandom( parameters.ints( "random_seed" ) ); 
-	
-	// Housekeeping 
-	
-	initialize_default_cell_definition();
-	cell_defaults.phenotype.secretion.sync_to_microenvironment( &microenvironment ); 
-	
-	// Turn the default cycle model to live, 
-	// so it's easier to turn-off proliferation
-	
-	cell_defaults.phenotype.cycle.sync_to_cycle_model( live ); 
-	
-	// Make sure we're ready for 2D <---- This is changed to 3-D in PhysiCell-X
-	// in setup_microenvironment(...) as PhysiCell-X works ONLY in 3-D
-	
-	cell_defaults.functions.set_orientation = up_orientation;  
-	cell_defaults.phenotype.geometry.polarity = 1.0; 
-	cell_defaults.phenotype.motility.restrict_to_2D = true; 
-	
-	// Use default proliferation and death 
-	
-	int cycle_start_index = live.find_phase_index( PhysiCell_constants::live ); 
-	int cycle_end_index = live.find_phase_index( PhysiCell_constants::live ); 
-	
-	int apoptosis_index = cell_defaults.phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model ); 
-	
-	cell_defaults.parameters.o2_proliferation_saturation = 38.0;  
-	cell_defaults.parameters.o2_reference = 38.0; 
+	initialize_mechanics_cell_types( false );
+}
 
-	initialize_cell_definitions_from_pugixml(); 
-	
-	// Set default uptake and secretion 
-	
-	static int oxygen_ID = microenvironment.find_density_index( "oxygen" ); 
-
-	// Oxygen
-	 
-	cell_defaults.phenotype.secretion.secretion_rates[oxygen_ID] = 0; 
-	cell_defaults.phenotype.secretion.uptake_rates[oxygen_ID] = 10; 
-	cell_defaults.phenotype.secretion.saturation_densities[oxygen_ID] = 38; 
-
-	// Set the default cell type to no phenotype updates 
-	
-	cell_defaults.functions.update_phenotype = tumor_cell_phenotype_with_oncoprotein; 
-	cell_defaults.name = "cancer cell"; 
-	cell_defaults.type = 0; 
-	
-	// Add custom data 
-	
-	cell_defaults.custom_data.add_variable( "oncoprotein" , "dimensionless", 1.0 ); 
-	
-	build_cell_definitions_maps(); //Uncommenting it
-	
-	// display_cell_definitions( std::cout ); <------ will print using all processes, thus disabled
-	
-	/*---------------------------------------------------------------------------------------*/
-	/* display_cell_definitions(...) has been disabled above as the printing will be done by */
-	/* ALL processes. If you want to print (for checking, testing etc.) then create a new 	 */
-	/* version of void create_cell_types(mpi_Environment &world, mpi_Cartesian &cart_topo)	 */
-	/* and then use the IOProcessor(world) function to print using ONLY the root process  	 */
-	/*---------------------------------------------------------------------------------------*/
-
-	return; 
+void create_cell_types( DistPhy::mpi::mpi_Environment& world, DistPhy::mpi::mpi_Cartesian& cart_topo )
+{
+	initialize_mechanics_cell_types( true, &world, &cart_topo );
 }
 
 void setup_microenvironment( void )
 {
-	
-	// Make sure not override and go back to 2D <--- ONLY valid for PhysiCell and NOT PhysiCell-X 
 	if( default_microenvironment_options.simulate_2D == true )
 	{
-		std::cout << "Warning: overriding XML config option and setting to 3D!" << std::endl; 
-		default_microenvironment_options.simulate_2D = false; 
+		std::cout << "Warning: overriding XML config option and setting to 3D!" << std::endl;
+		default_microenvironment_options.simulate_2D = false;
 	}
-	
-	initialize_microenvironment(); 	
 
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
-	return; 
+	initialize_microenvironment();
 }
 
-/*==============================================*/
-/* Parallel version of setup_microenvironment() */
-/*==============================================*/
-
-void setup_microenvironment(mpi_Environment &world, mpi_Cartesian &cart_topo)
+void setup_microenvironment( DistPhy::mpi::mpi_Environment& world, DistPhy::mpi::mpi_Cartesian& cart_topo )
 {
-	
-	//PhysiCell-X ONLY supports 3-D problems, hence MUST set 3-D option
-	
 	if( default_microenvironment_options.simulate_2D == true )
 	{
-		if(IOProcessor(world))
-            std::cout << "Warning: overriding XML config option and setting to 3D!" << std::endl; 
-		default_microenvironment_options.simulate_2D = false; 
+		if( IOProcessor( world ) )
+		{
+			std::cout << "Warning: overriding XML config option and setting to 3D!" << std::endl;
+		}
+		default_microenvironment_options.simulate_2D = false;
 	}
-			
-	initialize_microenvironment(world, cart_topo); 
 
-	return; 
-}	
-
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
+	initialize_microenvironment( world, cart_topo );
+}
 
 void setup_tissue( void )
 {
-	// place a cluster of tumor cells at the center 
-	
-	double cell_radius = cell_defaults.phenotype.geometry.radius; 
-	double cell_spacing = 0.95 * 2.0 * cell_radius; 
-	
-	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; 
-	
-	// Parameter<double> temp; 
-	
-	int i = parameters.doubles.find_index( "tumor_radius" ); 
-	
-	Cell* pCell = NULL; 
-	
-	double x = 0.0; 
-	double x_outer = tumor_radius; 
-	double y = 0.0; 
-	
-	double p_mean = parameters.doubles( "oncoprotein_mean" ); 
-	double p_sd = parameters.doubles( "oncoprotein_sd" ); 
-	double p_min = parameters.doubles( "oncoprotein_min" ); 
-	double p_max = parameters.doubles( "oncoprotein_max" ); 
-	
-	int n = 0; 
-	while( y < tumor_radius )
+	const std::vector<SeedCell> cells = read_seed_cells_from_config();
+	for( const SeedCell& cell : cells )
 	{
-		x = 0.0; 
-		if( n % 2 == 1 )
-		{ x = 0.5*cell_spacing; }
-		x_outer = sqrt( tumor_radius*tumor_radius - y*y ); 
-		
-		while( x < x_outer )
+		create_seed_cell( cell );
+	}
+}
+
+void setup_tissue( Microenvironment& microenvironment, DistPhy::mpi::mpi_Environment& world,
+	DistPhy::mpi::mpi_Cartesian& cart_topo )
+{
+	const std::vector<SeedCell> cells = read_seed_cells_from_config();
+	for( const SeedCell& cell : cells )
+	{
+		if( is_in_local_x_range( cell.x, microenvironment, world ) )
 		{
-			pCell = create_cell(); // tumor cell 
-			pCell->assign_position( x , y , 0.0 );
-			pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-			if( pCell->custom_data[0] < p_min )
-			{ pCell->custom_data[0] = p_min; }
-			if( pCell->custom_data[0] > p_max )
-			{ pCell->custom_data[0] = p_max; }
-			
-			if( fabs( y ) > 0.01 )
-			{
-				pCell = create_cell(); // tumor cell 
-				pCell->assign_position( x , -y , 0.0 );
-				pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-				if( pCell->custom_data[0] < p_min )
-				{ pCell->custom_data[0] = p_min; }
-				if( pCell->custom_data[0] > p_max )
-				{ pCell->custom_data[0] = p_max; }				
-			}
-			
-			if( fabs( x ) > 0.01 )
-			{ 
-				pCell = create_cell(); // tumor cell 
-				pCell->assign_position( -x , y , 0.0 );
-				pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-				if( pCell->custom_data[0] < p_min )
-				{ pCell->custom_data[0] = p_min; }
-				if( pCell->custom_data[0] > p_max )
-				{ pCell->custom_data[0] = p_max; }
-		
-				if( fabs( y ) > 0.01 )
-				{
-					pCell = create_cell(); // tumor cell 
-					pCell->assign_position( -x , -y , 0.0 );
-					pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-					if( pCell->custom_data[0] < p_min )
-					{ pCell->custom_data[0] = p_min; }
-					if( pCell->custom_data[0] > p_max )
-					{ pCell->custom_data[0] = p_max; }
-				}
-			}
-			x += cell_spacing; 
-			
-		}
-		
-		y += cell_spacing * sqrt(3.0)/2.0; 
-		n++; 
-	}
-	
-	double sum = 0.0; 
-	double min = 9e9; 
-	double max = -9e9; 
-	for( int i=0; i < all_cells->size() ; i++ )
-	{
-		double r = (*all_cells)[i]->custom_data[0]; 
-		sum += r;
-		if( r < min )
-		{ min = r; } 
-		if( r > max )
-		{ max = r; }
-	}
-	double mean = sum / ( all_cells->size() + 1e-15 ); 
-	// compute standard deviation 
-	sum = 0.0; 
-	for( int i=0; i < all_cells->size(); i++ )
-	{
-		sum +=  ( (*all_cells)[i]->custom_data[0] - mean )*( (*all_cells)[i]->custom_data[0] - mean ); 
-	}
-	double standard_deviation = sqrt( sum / ( all_cells->size() - 1.0 + 1e-15 ) ); 
-	
-	std::cout << std::endl << "Oncoprotein summary: " << std::endl
-			  << "===================" << std::endl; 
-	std::cout << "mean: " << mean << std::endl; 
-	std::cout << "standard deviation: " << standard_deviation << std::endl; 
-	std::cout << "[min max]: [" << min << " " << max << "]" << std::endl << std::endl; 
-	
-	return; 
-}
-
-/*-------------------------------------------------------------------*/
-/* Miguel Ponce-de-Leon's function for generating positions of cells */
-/*-------------------------------------------------------------------*/
-
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
-std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius, double sphere_radius)
-{
-	std::vector<std::vector<double>> cells;
-	int xc=0,yc=0,zc=0;
-	double x_spacing= cell_radius*sqrt(3);
-  double y_spacing= cell_radius*2;
-  double z_spacing= cell_radius*sqrt(3);
-	
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
-	//Attempt to generate very small number of cells
-	 //double x_spacing= 10;
-	 //double y_spacing= 10;
-	 //double z_spacing= 10;
-
-	std::vector<double> tempPoint(3,0.0);
-	// std::vector<double> cylinder_center(3,0.0);
-<<<<<<< HEAD
-=======
-=======
-	std::vector<double> tempPoint(3,0.0);
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
-
-	for(double z=-sphere_radius;z<sphere_radius;z+=z_spacing, zc++)
-	{
-		for(double x=-sphere_radius;x<sphere_radius;x+=x_spacing, xc++)
-		{
-			for(double y=-sphere_radius;y<sphere_radius;y+=y_spacing, yc++)
-			{
-				tempPoint[0]=x + (zc%2) * 0.5 * cell_radius;
-				tempPoint[1]=y + (xc%2) * cell_radius;
-				tempPoint[2]=z;
-
-				if(sqrt(norm_squared(tempPoint))< sphere_radius)
-				{ cells.push_back(tempPoint); }
-			}
-
+			create_seed_cell( cell, world, cart_topo );
 		}
 	}
-	return cells;
-<<<<<<< HEAD
-}
-
-=======
-<<<<<<< HEAD
-}
-
-=======
-
-}
-
-
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
-/*------------------------------------------------------------------------*/
-/* Parallel version of setup_tissue(), replacing this function completely */
-/* by Miguel's version of setup_tissue and then parallelizing             */
-/*------------------------------------------------------------------------*/
-
-void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
-{
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
-  
-	Cell* pC;
-
-	// Place a cluster of tumor cells at the center
-<<<<<<< HEAD
-=======
-=======
-  // Place a cluster of tumor cells at the center
-   
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
-	double cell_radius = cell_defaults.phenotype.geometry.radius; 
-	double cell_spacing = 0.95 * 2.0 * cell_radius; 
-	
-	double tumor_radius = parameters.doubles( "tumor_radius" ); // 250.0; now changed to 150 in PhysiCell_settings.xml file	
-	int i = parameters.doubles.find_index( "tumor_radius" ); 
-	
-	Cell* pCell = NULL; 
-    
-    std::vector<std::vector<double>> positions;		 
-    std::vector<std::vector<double>> generated_positions_at_root;
-    
-    /*----------------------------------------------------------------------------------------------------*/
-    /* Object of mpi_CellPositions must be declared for all processes because distribute_cell_positions() */
-    /* function will pass 2 objects of the kind mpi_CellPositions and mpi_MyCells                         */
-    /*----------------------------------------------------------------------------------------------------*/
-    
-    mpi_CellPositions cp;                //To store cell positions, cell IDs, no. of cell IDs at root only (for all processes)
-    mpi_MyCells       mc;                //To store cell positions, cell IDs, no. of cells at each process.
-	
-    if(world.rank == 0) //Only the MPI Rank 0 process will generate positions
-    {
-        generated_positions_at_root = create_cell_sphere_positions(cell_radius,tumor_radius);   //Generate the cell positions
-        
-        int strt_cell_ID = Basic_Agent::get_max_ID_in_parallel();                               //IDs for new cells (positions) will start from the current highest ID
-        
-        
-        cp.positions_to_rank_list(generated_positions_at_root, 
-                                  m.mesh.bounding_box[0], m.mesh.bounding_box[3], m.mesh.bounding_box[1], m.mesh.bounding_box[4], m.mesh.bounding_box[2], m.mesh.bounding_box[5], 
-                                  m.mesh.dx, m.mesh.dy, m.mesh.dz, 
-                                  world, cart_topo, strt_cell_ID);
-        
-        Basic_Agent::set_max_ID_in_parallel(strt_cell_ID + generated_positions_at_root.size()); //Highest ID now is the starting ID + no. of generated coordinates ! 
-    }
-    
-    distribute_cell_positions(cp, mc, world, cart_topo);                                        //Distribute cell positions to individual processes
-	
-    if(IOProcessor(world))
-        std::cout << "creating " << generated_positions_at_root.size() << " closely-packed tumor cells ... " << std::endl;
-
-	double x = 0.0; 
-	double x_outer = tumor_radius; 
-	double y = 0.0; 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
-
-	Cell_Definition* pCD = find_cell_definition( "cancer cell"); 
-	
-	
-	for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
-	{
-		
-		//pCell = create_cell(mc.my_cell_IDs[i]); // tumor cell --> This has to be replaced by create_cell(mc.my_cell_IDs[i])
-		pCell = create_cell((*pCD), mc.my_cell_IDs[i]);	
-		pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
-				
-<<<<<<< HEAD
-=======
-=======
-	
-	double p_mean = parameters.doubles( "oncoprotein_mean" ); 
-	double p_sd 	= parameters.doubles( "oncoprotein_sd" ); 
-	double p_min 	= parameters.doubles( "oncoprotein_min" ); 
-	double p_max 	= parameters.doubles( "oncoprotein_max" ); 
-	
-
-		for( int i=0; i < mc.my_no_of_cell_IDs; i++ )
-		{
-		  
-			pCell = create_cell(mc.my_cell_IDs[i]); // tumor cell --> This has to be replaced by create_cell(mc.my_cell_IDs[i])
-	  	  		
-			pCell->assign_position(mc.my_cell_coords[3*i],mc.my_cell_coords[3*i+1],mc.my_cell_coords[3*i+2],world, cart_topo); //pCell->assign_position( positions[i] );
-				 	
-		 	pCell->custom_data[0] = NormalRandom( p_mean, p_sd );
-		
-
-			if( pCell->custom_data[0] < p_min )
-			{ 
-				pCell->custom_data[0] = p_min; 
-			}
-			if( pCell->custom_data[0] > p_max )
-			{ 
-				pCell->custom_data[0] = p_max; 
-			}
-		} 
- 
-	
-	
-	double local_sum = 0.0, global_sum = 0.0; 
-	double local_min = 9e9, global_min = 0.0; 
-	double local_max = -9e9, global_max = 0.0; 
-	int local_cells, global_cells; 
-
-/*------------------------------------------------------------------------------------------------------*/
-/* The global_min/max are only for display purposes. We can just calculate local_min then do MPI_Reduce */
-/* at the root process to display it. Since the mean is needed by all processes to calculate squared 	  */
-/* sum of differences, I should do MPI_Allreduce(). Right now everything is globally distributed			  */
-/* later we can decide to use MPI_Reduce selectively. 																									*/
-/*------------------------------------------------------------------------------------------------------*/	
-	
-	for( int i=0; i < all_cells->size() ; i++ )
-	{
-		double r = (*all_cells)[i]->custom_data[0]; 
-		local_sum += r;
-		if( r < local_min )
-		{ 
-			local_min = r; 
-		} 
-		if( r > local_max )
-		{ 
-			local_max = r; 
-		}
-	}
-	
-	local_cells 	= mc.my_no_of_cell_IDs; 											//or all_cells->size()
-	
-	global_sum 		= distribute_global_sum(local_sum, cart_topo);
-	global_cells 	= distribute_global_sum(local_cells, cart_topo); 
-	global_max		= distribute_global_max(local_max, cart_topo); 
-	global_min	  = distribute_global_min(local_min, cart_topo); 
-	 
-	double mean = global_sum / ( global_cells + 1e-15 ); 
-	
-	// Compute standard deviation 
-	
-	local_sum = 0.0;
-	 
-	for( int i=0; i < all_cells->size(); i++ )
-	{
-		local_sum +=  ( (*all_cells)[i]->custom_data[0] - mean )*( (*all_cells)[i]->custom_data[0] - mean ); 
-	}
-	global_sum = distribute_global_sum(local_sum, cart_topo);
-		
-	double standard_deviation = sqrt( global_sum / ( global_cells - 1.0 + 1e-15 ) ); 
-	
-	if(IOProcessor(world))
-	{
-		std::cout << std::endl << "Oncoprotein summary: " << std::endl<< "===================" << std::endl; 
-		std::cout << "mean: " << mean << std::endl; 
-		std::cout << "standard deviation: " << standard_deviation << std::endl; 
-		std::cout << "[min max]: [" << global_min << " " << global_max << "]" << std::endl << std::endl;
->>>>>>> e9c5fd64bb80961703110793ce49efaed8566c64
->>>>>>> baebf87fcc8c1f9e3d062743f566b02ec2acfbbb
-	} 
-	
-	return; 
-}
-
-// Custom cell phenotype function to scale immunostimulatory factor with hypoxia 
-
-void tumor_cell_phenotype_with_oncoprotein( Cell* pCell, Phenotype& phenotype, double dt )
-{
-	update_cell_and_death_parameters_O2_based(pCell,phenotype,dt);
-	
-	// If cell is dead, don't bother with future phenotype changes. 
-	
-	if( phenotype.death.dead == true )
-	{
-		pCell->functions.update_phenotype = NULL; 		
-		return; 
-	}
-
-	// Multiply proliferation rate by the oncoprotein 
-	
-	static int cycle_start_index = live.find_phase_index( PhysiCell_constants::live ); 
-	static int cycle_end_index = live.find_phase_index( PhysiCell_constants::live ); 
-	static int oncoprotein_i = pCell->custom_data.find_variable_index( "oncoprotein" ); 
-
-	phenotype.cycle.data.transition_rate( cycle_start_index ,cycle_end_index ) *= pCell->custom_data[oncoprotein_i] ; 
-	
-	return; 
-}
-
-std::vector<std::string> heterogeneity_coloring_function( Cell* pCell )
-{
-	static int oncoprotein_i = pCell->custom_data.find_variable_index( "oncoprotein" ); 
-	
-	static double p_min = parameters.doubles( "oncoprotein_min" ); 
-	static double p_max = parameters.doubles( "oncoprotein_max" ); 
-	
-	// Immune are black
-	
-	std::vector< std::string > output( 4, "black" ); 
-	
-	if( pCell->type == 1 )
-	{ 
-		return output; 
-	} 
-	
-	// Live cells are green, but shaded by oncoprotein value
-	 
-	if( pCell->phenotype.death.dead == false )
-	{
-		int oncoprotein = (int) round( (1.0/(p_max-p_min)) * (pCell->custom_data[oncoprotein_i]-p_min) * 255.0 ); 
-		char szTempString [128];
-		sprintf( szTempString , "rgb(%u,%u,%u)", oncoprotein, oncoprotein, 255-oncoprotein );
-		output[0].assign( szTempString );
-		output[1].assign( szTempString );
-
-		sprintf( szTempString , "rgb(%u,%u,%u)", (int)round(output[0][0]/p_max) , (int)round(output[0][1]/p_max) , (int)round(output[0][2]/p_max) );
-		output[2].assign( szTempString );
-		
-		return output; 
-	}
-
-	// If not, dead colors 
-	
-	if (pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptotic )  // Apoptotic - Red
-	{
-		output[0] = "rgb(255,0,0)";
-		output[2] = "rgb(125,0,0)";
-	}
-	
-	// Necrotic - Brown
-	
-	if( pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_swelling || 
-		pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic_lysed || 
-		pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrotic )
-	{
-		output[0] = "rgb(250,138,38)";
-		output[2] = "rgb(139,69,19)";
-	}	
-	
-	return output; 
-}
-
-
-
-/* https://www.karger.com/Article/Fulltext/494069 */ 
-
-void macrophage_phenotype( Cell* pCell, Phenotype& phenotype, double dt )
-{
-	// find my cell definition 
-	static Cell_Definition* pCD = find_cell_definition( pCell->type_name ); 
-
-	// sample environment 
-
-	static int nPIF = microenvironment.find_density_index( "pro-inflammatory" ); 
-	static int nDebris = microenvironment.find_density_index( "debris"); 
-	static int nQ = microenvironment.find_density_index("quorum");
-
-	// if dead, release debris
-	if( phenotype.death.dead == true )
-	{
-		phenotype.secretion.net_export_rates[nDebris] = phenotype.volume.total; 
-		pCell->functions.update_phenotype = NULL; 
-		return;
-	}	
-
-	double * samples = pCell->nearest_density_vector(); 
-	double PIF = samples[nPIF];
-	double debris = samples[nDebris]; 
-	double Q = samples[nQ];
-
-	// sample contacts 
-
-	static int bacteria_type = find_cell_definition( "bacteria")->type; 
-
-	int num_bacteria = 0; 
-	int num_dead = 0; 
-	for( int n=0; n < pCell->state.neighbors.size(); n++ )
-	{
-		Cell* pC = pCell->state.neighbors[n]; 
-		if( pC->phenotype.death.dead == true )
-		{ num_dead++; }
-		else
-		{ 
-			if( pC->type == bacteria_type )
-			{ num_bacteria++; }
-		}
-	}
-
-	// contact with dead cells or bacteria, or debris 
-	// increases secretion of pro-inflammatory 
-
-	static double secretion_dead_sensitivity = 1; 
-	static double secretion_bacteria_sensitivity = 1; 
-	static double secretion_debris_sensitivity = 2; 
-	static double secretion_quorum_sensitivity = 5; 
-
-	double base_val = pCD->phenotype.secretion.secretion_rates[nPIF]; 
-	double max_response = 10; // phenotype.volume.total; 
-	double signal = 
-		secretion_dead_sensitivity*num_dead + 
-		secretion_bacteria_sensitivity*num_bacteria + 
-		secretion_debris_sensitivity*debris + 
-		secretion_quorum_sensitivity*Q; 
-	double half_max = pCD->custom_data["secretion_halfmax"]; // 0.5; // 0.5; 
-	double hill = Hill_response_function( signal , half_max , 1.5 ); 
-	
-	
-	phenotype.secretion.secretion_rates[nPIF] = base_val + (max_response-base_val)*hill; 
-	
-/*	
-	#pragma omp critical
-	{
-	std::cout << "secretion index: " << nPIF << " base: " << base_val << " max: " << max_response << " actual: " << phenotype.secretion.secretion_rates[nPIF] << std::endl; 
-	std::cout << "\tsignal: " << signal << " vs halfmax: " << half_max << std::endl; 
-	std::cout << "\t\tdead: " << num_dead << " bac: " << num_bacteria << " debris: " << debris << " Q: " << Q << std::endl; 
-	std::cout << "\t\t\tsaturation: " << phenotype.secretion.saturation_densities[nPIF]<< std::endl; 
-	}
-*/	
-
-	// chemotaxis bias increases with debris or quorum factor 
-
-	static double bias_debris_sensitivity = 0.1; 
-	static double bias_quorum_sensitivity = 1; 
-
-	base_val = pCD->phenotype.motility.migration_bias; 
-	max_response = 0.75; 
-	signal = bias_debris_sensitivity*debris + 
-		bias_quorum_sensitivity*Q ; // + 10 * PIF; 
-	half_max = pCD->custom_data["migration_bias_halfmax"]; // 0.01 // 0.005 //0.1 // 0.05
-	hill = Hill_response_function( signal , half_max , 1.5 ); 
-	phenotype.motility.migration_bias = base_val + (max_response-base_val)*hill; 	
-
-/*
-	#pragma omp critical 
-	{
-	std::cout << "signal: " << signal << " halfmax: " << half_max 
-	<< " hill: " << hill << std::endl; 
-	
-	std::cout << "\tbase: " << base_val 
-	<< " max: " << max_response 
-	<< " actual: " << phenotype.motility.migration_bias << std::endl; 
-	}
-*/
-
-	// migration speed slows down in the presence of debris or quorum factor 
-
-	base_val = pCD->phenotype.motility.migration_speed; 
-	max_response = 0.1 * base_val; 
-	signal = bias_debris_sensitivity*debris + 
-		bias_quorum_sensitivity*Q ; // + 10 * PIF; 
-	half_max = pCD->custom_data["migration_speed_halfmax"]; // 0.1 // 0.05 
-	hill = Hill_response_function( signal , half_max , 1.5 ); 
-	phenotype.motility.migration_speed = base_val + (max_response-base_val)*hill; 	
-
-	return; 
-}
-
-void CD8Tcell_phenotype( Cell* pCell, Phenotype& phenotype, double dt )
-{
-	// find my cell definition 
-	static Cell_Definition* pCD = find_cell_definition( pCell->type_name ); 
-
-	// sample environment 
-
-	static int nR = microenvironment.find_density_index( "resource");
-	static int nTox = microenvironment.find_density_index( "toxin");
-	static int nDebris = microenvironment.find_density_index( "debris" );
-	static int nPIF = microenvironment.find_density_index( "pro-inflammatory"); 
-	
-	double * samples = pCell->nearest_density_vector(); 
-	double PIF = samples[nPIF];	
-	
-	// if dead, release debris
-	if( phenotype.death.dead == true )
-	{
-		phenotype.secretion.net_export_rates[nDebris] = phenotype.volume.total; 
-		pCell->functions.update_phenotype = NULL; 
-		return;
-	}
-	
-	// migration bias increases with pro-inflammatory 
-
-	double signal = PIF; 
-	double base_val = pCD->phenotype.motility.migration_bias; 
-	double max_val = 0.75; 
-	double half_max = pCD->custom_data["migration_bias_halfmax"]; // 0.05 // 0.25 
-	double hill = Hill_response_function( PIF , half_max , 1.5 ); 
-
-	phenotype.motility.migration_bias = base_val + (max_val-base_val)*hill; 
-	
-/*	
-	#pragma omp critical 
-	{
-		std::cout << "signal: " << signal << " halfmax: " << half_max 
-		<< " hill: " << hill << std::endl; 
-		
-		std::cout << "\tbase: " << base_val 
-		<< " max: " << max_val 
-		<< " actual: " << phenotype.motility.migration_bias << std::endl; 
-	}	
-*/	
-
-	return; 
-}
-
-void neutrophil_phenotype( Cell* pCell, Phenotype& phenotype, double dt )
-{
-	// find my cell definition 
-	static Cell_Definition* pCD = find_cell_definition( pCell->type_name ); 
-
-	// sample environment 
-
-	static int nR = microenvironment.find_density_index( "resource");
-	static int nTox = microenvironment.find_density_index( "toxin");
-	static int nDebris = microenvironment.find_density_index( "debris" );
-	static int nPIF = microenvironment.find_density_index( "pro-inflammatory"); 
-	
-	double * samples = pCell->nearest_density_vector(); 
-	double PIF = samples[nPIF];	
-	
-	// if dead, release debris
-	if( phenotype.death.dead == true )
-	{
-		phenotype.secretion.net_export_rates[nDebris] = phenotype.volume.total; 
-		pCell->functions.update_phenotype = NULL; 
-		return;
-	}
-
-	// migration bias increases with pro-inflammatory 
-
-	double signal = PIF; 
-	double base_val = pCD->phenotype.motility.migration_bias; 
-	double max_val = 0.75; 
-	double half_max = pCD->custom_data["migration_bias_halfmax"]; // 0.25 
-	double hill = Hill_response_function( PIF , half_max , 1.5 ); 
-
-	phenotype.motility.migration_bias = base_val + (max_val-base_val)*hill; 
-
-	return; 
-}
-
-void stem_cell_phenotype( Cell* pCell, Phenotype& phenotype, double dt )
-{
-	// find my cell definition 
-	static Cell_Definition* pCD = find_cell_definition( pCell->type_name ); 
-
-	// sample environment 
-
-	static int nR = microenvironment.find_density_index( "resource");
-	static int nTox = microenvironment.find_density_index( "toxin");
-	static int nDebris = microenvironment.find_density_index( "debris" ); 
-
-	// if dead, release debris
-	if( phenotype.death.dead == true )
-	{
-		phenotype.secretion.net_export_rates[nDebris] = phenotype.volume.total; 
-		pCell->functions.update_phenotype = NULL; 
-		return;
-	}
-
-	double * samples = pCell->nearest_density_vector(); 
-	double R = samples[nR];
-	double toxin = samples[nTox];
-
-	// sample contacts 
-
-	static int stem_type = find_cell_definition( "stem")->type; 
-	static int diff_type = find_cell_definition( "differentiated")->type; 
-	static int bacteria_type = find_cell_definition( "bacteria")->type; 
-
-	int num_stem = 0; 
-	int num_differentiated = 0; 
-	int num_bacteria = 0; 
-	int num_dead = 0; 
-	for( int n=0; n < pCell->state.neighbors.size(); n++ )
-	{
-		Cell* pC = pCell->state.neighbors[n]; 
-		if( pC->phenotype.death.dead == true )
-		{ num_dead++; }
-		else
-		{ 
-			if( pC->type == stem_type )
-			{ num_stem++; }
-			if( pC->type == num_differentiated )
-			{ num_differentiated++; }
-			if( pC->type == bacteria_type )
-			{ num_bacteria++; }
-		}
-	}
-
-	// contact with a stem cell increases differentiation 
-	static double max_stem_diff = parameters.doubles("max_stem_differentiation"); // 0.0075 
-	static double stem_diff_halfmax = pCD->custom_data["differentiation_contact_halfmax"]; // 0.1 
-
-	double base_val = 0; // phenotype.cell_transformations.transformation_rates[diff_type]; 
-	double max_val = max_stem_diff; // 0.0075;
-	double signal = num_stem; 
-	double half_max = stem_diff_halfmax; // 0.1; 
-	double hill = Hill_response_function( signal, half_max , 1.5 ); 
-	phenotype.cell_transformations.transformation_rates[diff_type] = base_val + (max_val-base_val)*hill; 
-
-	// contact with a differentiated cell reduces proliferation 
-	// high rate of proliferation unless in contact with a differentiated cell 
-
-	static double stem_cycling_halfmax = pCD->custom_data["cycling_contact_halfmax"]; // 0.1; 
-
-	base_val = pCD->phenotype.cycle.data.exit_rate(0); // 0.002; 
-	max_val = 0.0; 
-	signal = num_differentiated; 
-	half_max = stem_cycling_halfmax; //  0.1; 
-	hill = Hill_response_function( signal, half_max , 1.5 ); 
-	phenotype.cycle.data.exit_rate(0) = base_val + (max_val-base_val)*hill; 
-
-	// resource reduces necrotic death 
-
-	max_val = 0.0028;  
-	static int nNecrosis = phenotype.death.find_death_model_index( PhysiCell_constants::necrosis_death_model );
-	static double stem_saturation_necrosis = pCD->custom_data["necrosis_saturation_resource"];
-	static double stem_threshold_necrosis = pCD->custom_data["necrosis_threshold_resource"];
-
-	phenotype.death.rates[nNecrosis] = max_val * 
-		decreasing_linear_response_function( R, stem_saturation_necrosis, stem_threshold_necrosis );
-
-	// toxin increases apoptotic death 
-	
-	static int nApoptosis = phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model );
-
-	static double toxicity_halfmax = pCD->custom_data["toxicity_halfmax"]; // 0.4 
-	static double relative_max_toxicity = pCD->custom_data["relative_max_toxicity"]; 
-
-	signal = toxin; 
-	base_val = pCD->phenotype.death.rates[nApoptosis]; 
-	max_val = base_val * relative_max_toxicity; // 100*base_val;
-
-	hill = Hill_response_function( signal , toxicity_halfmax , 1.5 ); 
-	phenotype.death.rates[nApoptosis] = base_val + (max_val-base_val)*hill; 
-	
-	return; 
-}
-
-void differentiated_cell_phenotype( Cell* pCell, Phenotype& phenotype, double dt )
-{
-	// find my cell definition 
-	static Cell_Definition* pCD = find_cell_definition( pCell->type_name ); 
-
-	// sample environment 
-
-	static int nR = microenvironment.find_density_index( "resource");
-	static int nTox = microenvironment.find_density_index( "toxin");
-	static int nDebris = microenvironment.find_density_index( "debris" );
-	
-	// if dead, release debris
-	if( phenotype.death.dead == true )
-	{
-		phenotype.secretion.net_export_rates[nDebris] = phenotype.volume.total; 
-		pCell->functions.update_phenotype = NULL; 
-		return;
-	}
-	
-	double * samples = pCell->nearest_density_vector(); 
-	double R = samples[nR];
-	double toxin = samples[nTox];
-
-
-	double signal = 0.0; 
-	double hill = 0.0; 
-
-	// pressure reduces proliferation 
-	signal = pCell->state.simple_pressure;  
-	static double pressure_halfmax = pCD->custom_data["cycling_pressure_halfmax"]; // 0.5 
-	hill = Hill_response_function( signal, pressure_halfmax , 1.5 );  
-	double base_val = pCD->phenotype.cycle.data.exit_rate(0); 
-
-	phenotype.cycle.data.exit_rate(0) = (1-hill)*base_val; 
-
-	// resource reduces necrotic death 
-
-	double max_val = 0.0028;  
-	static int nNecrosis = phenotype.death.find_death_model_index( PhysiCell_constants::necrosis_death_model );
-
-	// get same from bacteria
-	static double necrosis_saturation = pCD->custom_data["necrosis_saturation_resource"]; // 0.075 
-	static double necrosis_threshold = pCD->custom_data["necrosis_threshold_resource"]; // 0.15 
-
-	phenotype.death.rates[nNecrosis] = max_val * 
-		decreasing_linear_response_function( R, necrosis_saturation, necrosis_threshold ); 
-
-	// toxin increases apoptotic death 
-	
-	static int nApoptosis = phenotype.death.find_death_model_index( PhysiCell_constants::apoptosis_death_model );
-
-	static double toxicity_halfmax = pCD->custom_data["toxicity_halfmax"]; // 0.2 
-	static double relative_max_tox_death = pCD->custom_data["relative_max_toxicity"]; // 100 
-
-	signal = toxin; 
-	base_val = pCD->phenotype.death.rates[nApoptosis]; 
-	double max_response = base_val * relative_max_tox_death; 
-	hill = Hill_response_function( signal , toxicity_halfmax , 1.5 ); 
-	// std::cout << "tox: " << signal << " " << hill << std::endl; 
-	phenotype.death.rates[nApoptosis] = base_val + (max_response-base_val)*hill; 
-
-	return; 
 }

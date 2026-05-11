@@ -1,10 +1,9 @@
 #ifndef _MaBoSS_Net_h_
 #define _MaBoSS_Net_h_
 
-#include "../MaBoSS-env-2.0/engine/include/StochasticSimulationEngine.h"
-#include "../MaBoSS-env-2.0/engine/include/BooleanNetwork.h"
-#include "../MaBoSS-env-2.0/engine/include/RunConfig.h"
-#include "utils.h"
+#include "StochasticSimulationEngine.h"
+#include "BooleanNetwork.h"
+#include "RunConfig.h"
 #include "../../../core/PhysiCell_utilities.h"
 #include "../../../core/MPI_helper.h"
 
