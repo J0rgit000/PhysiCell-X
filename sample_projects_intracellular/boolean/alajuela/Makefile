@@ -18,7 +18,7 @@ MABOSS_MAX_NODES = 128
 endif
 
 # MaBoSS directory
-MABOSS_DIR = addons/PhysiBoSS/MaBoSS-env-2.0/engine
+MABOSS_DIR = addons/PhysiBoSS/MaBoSS/engine
 CUR_DIR = $(shell pwd)
 
 ifneq ($(OS), Windows_NT)

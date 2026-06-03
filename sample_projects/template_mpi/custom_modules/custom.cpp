@@ -117,7 +117,7 @@ namespace
 			setup_signal_behavior_dictionaries();
 		}
 
-		setup_cell_rules();
+		setup_cell_rules(world, cart_topo);
 
 		cell_defaults.functions.update_phenotype = phenotype_function;
 		cell_defaults.functions.custom_cell_rule = custom_function;

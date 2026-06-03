@@ -174,7 +174,7 @@ void Hypothesis_Rule::detailed_display( std::ostream& os )
 			<< " with half-max " << half_maxes[j] << " and Hill power " << hill_powers[j] << "."; 
 		if( applies_to_dead_cells[j] == true )
 		{ os << " Rule applies to dead cells."; }
-		std::cout << std::endl; 
+		os << std::endl; 
 	}
 	return; 
 }
@@ -2395,24 +2395,26 @@ void setup_cell_rules( mpi_Environment& world, mpi_Cartesian& cart_topo )
 	display_hypothesis_rulesets( std::cout , world, cart_topo);
 
 	// save annotations 
-	save_annotated_detailed_English_rules(); 
-	save_annotated_detailed_English_rules_HTML(); 
-	save_annotated_English_rules(); 
-	save_annotated_English_rules_HTML(); 
+	if (IOProcessor(world)) {
+		save_annotated_detailed_English_rules(); 
+		save_annotated_detailed_English_rules_HTML(); 
+		save_annotated_English_rules(); 
+		save_annotated_English_rules_HTML(); 
 
-	// save dictionaries 
-	std::string dictionary_file = "./" + PhysiCell_settings.folder + "/dictionaries.txt";
-	std::ofstream dict_of( dictionary_file , std::ios::out ); 
+		// save dictionaries 
+		std::string dictionary_file = "./" + PhysiCell_settings.folder + "/dictionaries.txt";
+		std::ofstream dict_of( dictionary_file , std::ios::out ); 
 
-	// display_signal_dictionary( dict_of ); // done 
-	display_signal_dictionary_with_synonyms( dict_of ); // 
-	// display_behavior_dictionary( dict_of ); // done 
-	display_behavior_dictionary_with_synonyms( dict_of ); // done 
-	dict_of.close(); 
+		// display_signal_dictionary( dict_of ); // done 
+		display_signal_dictionary_with_synonyms( dict_of ); // 
+		// display_behavior_dictionary( dict_of ); // done 
+		display_behavior_dictionary_with_synonyms( dict_of ); // done 
+		dict_of.close(); 
 
-	// save rules (v3)
-	std::string rules_file = PhysiCell_settings.folder + "/cell_rules_parsed.csv"; 
-	export_rules_csv_v3( rules_file ); 
+		// save rules (v3)
+		std::string rules_file = PhysiCell_settings.folder + "/cell_rules_parsed.csv"; 
+		export_rules_csv_v3( rules_file ); 
+	}
 
 	return; 
 }

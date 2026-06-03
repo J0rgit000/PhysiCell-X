@@ -152,10 +152,9 @@ void initialize_default_cell_definition( void ); // done
 void chemotaxis_function( Cell* pCell, Phenotype& phenotype , double dt ); 
 
 void standard_elastic_contact_function( Cell* pC1, Phenotype& p1, Cell* pC2, Phenotype& p2 , double dt );
-void standard_elastic_contact_function_confluent_rest_length( Cell* pC1, Phenotype& p1, Cell* pC2, Phenotype& p2 , double dt );
 void evaluate_interactions( Cell* pCell, Phenotype& phenotype, double dt );
 void standard_elastic_contact_function( Cell* pC1, Phenotype& p1, std::vector<double> neighbour, double dt, mpi_Environment &world, mpi_Cartesian &cart_topo);
-
+void standard_elastic_contact_function_confluent_rest_length( Cell* pC1, Phenotype& p1, Cell* pC2, Phenotype& p2 , double dt );
 
 // new in 1.10.0 
 

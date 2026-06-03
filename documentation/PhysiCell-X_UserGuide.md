@@ -794,3 +794,8 @@ $^2$: An MPI Cartesian Topology is a *virtual* arrangement of processes.
 [4] G. Saxena, M. Ponce-de Leon, A. Montagud, D. Vicente Dorca, and A. Valencia. BioFVM-X: An MPI+
 OpenMP 3-D Simulator for Biological Systems. In International Conference on Computational Methods
 in Systems Biology, pages 266–279. Springer, 2021. URL [https://link.springer.com/chapter/10.1007/978-3-030-85633-5_18](https://link.springer.com/chapter/10.1007/978-3-030-85633-5_18).
+
+[5] J.-L. Estragues-Muñoz, C. Alvarez, A. Montagud, D. Jimenez-Gonzalez, and A. Valencia. A novel scalable high performance diffusion solver for multiscale cell simulations. arXiv preprint arXiv:2602.05017, 2026. URL [https://arxiv.org/abs/2602.05017](https://arxiv.org/abs/2602.05017).
+
+
+

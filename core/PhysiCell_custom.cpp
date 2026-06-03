@@ -295,7 +295,7 @@ double& Custom_Cell_Data::operator[](int i)
 
 double& Custom_Cell_Data::operator[]( std::string name )
 {
-	return variables[ name_to_index_map[name] ].value; 
+	return variables[ name_to_index_map.at(name) ].value; 
 }
 
 std::ostream& operator<<(std::ostream& os, const Custom_Cell_Data& ccd)

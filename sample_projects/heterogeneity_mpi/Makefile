@@ -185,7 +185,7 @@ heterogeneity.o: ./custom_modules/heterogeneity.cpp
 
 reset:
 	rm -f *.cpp 
-	cp ./sample_projects/Makefile-default Makefile 
+	cp Makefile-backup Makefile 
 	rm -f ./custom_modules/*
 	touch ./custom_modules/empty.txt 
 	touch ALL_CITATIONS.txt 
