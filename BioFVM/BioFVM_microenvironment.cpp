@@ -1256,31 +1256,40 @@ void Microenvironment::write_to_matlab( std::string filename, mpi_Environment &w
     int elements_to_write; 
     
     /*----------------------------------------------------------------------------------------*/
-    /* Now total data entries is now the sum of all entries on all processes                  */
-    /* size of datum remains the same                                                         */
+    /* Compute true total data entries across all processes (handles uneven partitions)        */
+    /* Use MPI_Allreduce for global sum and MPI_Scan for prefix offsets                       */
+    /* This fixes corruption when domain is partitioned unevenly (e.g., np=4 non-div voxels)   */
     /*----------------------------------------------------------------------------------------*/
     
-    
-    int number_of_data_entries = mesh.voxels.size();
+    int local_number_of_data_entries = mesh.voxels.size();
 	int size_of_each_datum = 3 + 1 + number_of_densities(); 
+    int total_number_of_data_entries = 0;
+    int prefix_offset = 0;
+    
+    // Get total voxel count across all processes
+    MPI_Allreduce(&local_number_of_data_entries, &total_number_of_data_entries, 1, MPI_INT, MPI_SUM, cart_topo.mpi_cart_comm);
+    
+    // Get prefix offset: sum of voxel counts from processes with lower rank
+    MPI_Scan(&local_number_of_data_entries, &prefix_offset, 1, MPI_INT, MPI_SUM, cart_topo.mpi_cart_comm);
+    prefix_offset -= local_number_of_data_entries;  // Exclude this process's voxels from offset
 
     //Possibly we do not need to return anything over here, we can write a separate file at Master
     //All processes call this function - because William Groppe says MPI_File_open is collective operation
     
-    write_matlab_header( size_of_each_datum, world.size * number_of_data_entries,  filename, "multiscale_microenvironment", world, cart_topo );
+    write_matlab_header( size_of_each_datum, total_number_of_data_entries,  filename, "multiscale_microenvironment", world, cart_topo );
     
     MPI_Barrier(cart_topo.mpi_cart_comm); 
     
     
     
-		// storing data as cols 
-    buffer = new double[number_of_data_entries * size_of_each_datum];
+	// storing data as cols 
+    buffer = new double[local_number_of_data_entries * size_of_each_datum];
     
     //std::cout<<"CX	"<<"CY	"<<"CZ	"<<"Vol	"<<"Density	\n"; 
     
     int n = 0;
 	int density_index = 0;
-	for( int i=0; i < number_of_data_entries ; i++ )
+	for( int i=0; i < local_number_of_data_entries ; i++ )
 	{
 		buffer[n++] = mesh.voxels[i].center[0];
 		buffer[n++] = mesh.voxels[i].center[1];
@@ -1299,10 +1308,10 @@ void Microenvironment::write_to_matlab( std::string filename, mpi_Environment &w
 	MPI_File_open(cart_topo.mpi_cart_comm, char_filename, MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);      //This file is already created while writing Matlab header
     MPI_File_get_size(fh,&file_size);
     
-    offset = file_size + world.rank * sizeof(double) * number_of_data_entries * size_of_each_datum;
+    offset = file_size + prefix_offset * sizeof(double) * size_of_each_datum;
     etype = MPI_DOUBLE;
     filetype = MPI_DOUBLE; 
-    elements_to_write = number_of_data_entries * size_of_each_datum; 
+    elements_to_write = local_number_of_data_entries * size_of_each_datum; 
     
     MPI_File_set_view(fh, offset, etype, filetype, "native", MPI_INFO_NULL); 
     MPI_File_write(fh, buffer, elements_to_write, MPI_DOUBLE, MPI_STATUS_IGNORE);

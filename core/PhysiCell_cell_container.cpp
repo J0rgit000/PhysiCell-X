@@ -105,9 +105,6 @@ Cell_Container::Cell_Container()
 {
 	all_cells = (std::vector<Cell*> *) &all_basic_agents;
 	boundary_condition_for_pushed_out_agents= PhysiCell_constants::default_boundary_condition_for_pushed_out_agents;
-	std::vector<Cell*> cells_ready_to_divide;
-	std::vector<Cell*> cells_ready_to_die;
-
 	return;
 }
 
@@ -166,8 +163,6 @@ void Cell_Container::initialize(double x_start, double x_end, double y_start, do
 
 void Cell_Container::update_all_cells(double t)
 {
-	// update_all_cells(t, dt_settings.cell_cycle_dt_default, dt_settings.mechanics_dt_default);
-
 	update_all_cells(t, phenotype_dt, mechanics_dt , diffusion_dt );
 
 	return;
@@ -179,8 +174,6 @@ void Cell_Container::update_all_cells(double t)
 
 void Cell_Container::update_all_cells(double t, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
-	// update_all_cells(t, dt_settings.cell_cycle_dt_default, dt_settings.mechanics_dt_default);
-
 	update_all_cells(t, phenotype_dt, mechanics_dt , diffusion_dt, world, cart_topo );
 
 	return;
@@ -189,7 +182,6 @@ void Cell_Container::update_all_cells(double t, mpi_Environment &world, mpi_Cart
 void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double mechanics_dt_ , double diffusion_dt_ )
 {
 	// secretions and uptakes. Syncing with BioFVM is automated.
-
 
 	#pragma omp parallel for
 	for( int i=0; i < (*all_cells).size(); i++ )
@@ -312,7 +304,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		
 		// perform custom computations 
 		
-		//#pragma omp parallel for 
+		#pragma omp parallel for 
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
 			Cell* pC = (*all_cells)[i]; 
@@ -427,7 +419,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	#pragma omp parallel for
 	for( int i=0; i < (*all_cells).size(); i++ )
 	{
-		if( (*all_cells)[i]->is_out_of_domain == false )			//Added this if condition, was missing
+		if( (*all_cells)[i]->is_out_of_domain == false )
 		{
 			Cell* pC = (*all_cells)[i];
 			pC->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
@@ -619,7 +611,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		
 		start_part = std::chrono::high_resolution_clock::now();
 		#endif
-		//evaluate_cell_cell_interactions(time_since_last_mechanics,  world, cart_topo);
+		evaluate_cell_cell_interactions(time_since_last_mechanics,  world, cart_topo);
 		#ifdef MECHS_TIME
 		end_part = std::chrono::high_resolution_clock::now();
 		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
@@ -651,6 +643,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 				pC->update_position(time_since_last_mechanics, world, cart_topo);
 			}
 		}
+		/*
 		int crossed_this_step = 0;
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
@@ -658,7 +651,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			{
 				crossed_this_step++;
 			}
-		}
+		}*/
 		#ifdef MECHS_TIME
 		end_part = std::chrono::high_resolution_clock::now();
 		duration_part = std::chrono::duration_cast<std::chrono::microseconds>(end_part - start_part);
@@ -1023,6 +1016,7 @@ void Cell_Container::pack_moore_info(mpi_Environment &world, mpi_Cartesian &cart
 
 }
 
+//TODO: 1: encapsulate the packing of each voxel's data into a separate function to avoid code repetition
 void Cell_Container::pack_cell_interact_info(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 	position_left = 0;
@@ -1595,7 +1589,7 @@ void Cell_Container::unpack_cell_interact_info(mpi_Environment &world, mpi_Carte
 }
 
 Cell* Cell_Container::find_cell(int local_voxel, int cell_id) {
-	if (local_voxel >= agent_grid.size()) return NULL;
+	if (local_voxel >= agent_grid.size() || local_voxel < 0) return NULL;
 	int size = agent_grid[local_voxel].size();
 	for (int i  = 0; i < size; ++i){
 		if (agent_grid[local_voxel][i]->ID == cell_id) return agent_grid[local_voxel][i];
@@ -1618,6 +1612,10 @@ void Cell_Container::remove_agent(Cell* agent )
 void Cell_Container::add_agent_to_outer_voxel(Cell* agent)
 {
 	int escaping_face= find_escaping_face_index(agent);
+	if (escaping_face==-1)
+	{
+		return;
+	}
 	agents_in_outer_voxels[escaping_face].push_back(agent);
 	agent->is_out_of_domain=true;
 	return;
@@ -1630,10 +1628,16 @@ void Cell_Container::remove_agent_from_voxel(Cell* agent, int voxel_index)
 		return; 
 	}
 	int delete_index = 0;
-	while( agent_grid[voxel_index][ delete_index ] != agent )
+	int size = agent_grid[voxel_index].size();
+	while (delete_index < size)
 	{
+		if (agent_grid[voxel_index][ delete_index ] == agent)
+		{
+			break;
+		}
 		delete_index++;
 	}
+	
 	// move last item to index location
 	//agent_grid[agent->get_current_mechanics_voxel_index()][delete_index] = agent_grid[agent->get_current_mechanics_voxel_index()][agent_grid[agent->get_current_mechanics_voxel_index()].size()-1 ];
 	// shrink the vector

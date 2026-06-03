@@ -2,8 +2,6 @@
 
 #include <omp.h>
 #include <vector>
-#include <map>
-#include <cstring>
 
 namespace PhysiCell {
 
@@ -16,19 +14,17 @@ struct ThreadPackingBuffer {
 
 
 inline int calculate_voxel_pack_size(int no_of_cells) {
-    // Tamaño fijo del header: 2 ints + 3 doubles + 1 double = 2*4 + 4*8 = 40 bytes
+    // Header size: 2 ints + 3 doubles + 1 double = 2*4 + 4*8 = 40 bytes
     int header_size = 2 * sizeof(int) + 4 * sizeof(double);
     
-    // Tamaño por célula: 2 ints + 8 doubles = 2*4 + 8*8 = 72 bytes
+    // Size per cell: 2 ints + 8 doubles = 2*4 + 8*8 = 72 bytes
     int cell_size = 2 * sizeof(int) + 8 * sizeof(double);
     
     return header_size + (no_of_cells * cell_size);
 }
 
-/*
- * Versión optimizada de pack_moore_voxel que escribe directamente
- * en un offset específico del buffer (para uso en threads)
- */
+
+// Optimized function to pack voxel info using offset based packing
 void pack_moore_voxel_to_buffer(
     const Cell_Container* container,
     unsigned int voxel_index,
@@ -67,23 +63,15 @@ void pack_moore_voxel_to_buffer(
 }
 
 /*
- * pack_moore_info_parallel()
- * 
- * Versión paralelizada de pack_moore_info() usando OpenMP.
- * 
- * MEJORAS IMPLEMENTADAS:
- * 1. Pre-cálculo de todos los tamaños de buffer (evita resizes en loop)
- * 2. Paralelización de loops con #pragma omp parallel for
- * 3. Sincronización controlada mediante threads privados
- * 4. Reducción manual de resultados
- * 
- * MEJORA ESPERADA: 30-50% en sistemas multi-core
- * 
- * NOTAS:
- * - Esta función es intercambiable con pack_moore_info()
- * - Produce exactamente el mismo resultado pero más rápido
- * - Requiere compilación con -fopenmp
- * - Mantiene compatibilidad MPI completa
+ * pack_moore_info_parallel() - Do not use by now!
+ * TODO: fix parallel bug
+ * lines 163-173 (line 163): offset = position_left_thread is read outside 
+ * the critical section. Multiple threads can read the same offset, then pack 
+ * different voxels into overlapping buffer regions. Same bug on lines 190-200 (line 190) 
+ * for the right buffer.
+ * Suggested fix: precompute deterministic per-voxel prefix offsets before the parallel loop, 
+ * like the serial implementation already does in PhysiCell_cell_container.cpp (line 837). 
+ * Do not assign offsets through a shared counter inside the parallel loop.
  */
 void Cell_Container::pack_moore_info_parallel(mpi_Environment &world, mpi_Cartesian &cart_topo) {
 

@@ -22,6 +22,8 @@ addons/PhysiBoSS/libMaBoSS-*.tar.gz
 #Miscellaneous
 core/doubts.txt
 
+#configuration files
+config/
 #Results
 output/
 logs/

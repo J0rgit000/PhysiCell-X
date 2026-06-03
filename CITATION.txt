@@ -29,9 +29,10 @@ with BioFVM [2] to solve the transport equations.
 + If you use PhysiCell-X in your project, we would really appreciate if you can cite:+
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++    
 
-[1] The PhysiCell-X repository URL : https://gitlab.bsc.es/gsaxena/physicell_x
+[1] The PhysiCell-X repository URL : https://github.com/bsc-life/PhysiCell-X.git
 
 [2] Saxena, Gaurav, Miguel Ponce-de-Leon, Arnau Montagud, David Vicente Dorca, and Alfonso Valencia. 
 		"BioFVM-X: An MPI+ OpenMP 3-D Simulator for Biological Systems."
 		In International Conference on Computational Methods in Systems Biology, pp. 266-279. Springer, Cham, 2021.
+
  

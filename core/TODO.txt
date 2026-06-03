@@ -1,0 +1,1 @@
+remove_crossed_cell() calls vaporize_teleported_cell(this->index) at 1285 (line/home/jose/Documentos/PhysiCell-X/PhysiCell-X/core/PhysiCell_cell.cpp); correctness depends on index still matching all_cells after prior removals in the same loop.
