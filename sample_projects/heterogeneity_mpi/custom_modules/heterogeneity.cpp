@@ -210,7 +210,7 @@ std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius
 /* by Miguel's version of setup_tissue and then parallelizing             */
 /*------------------------------------------------------------------------*/
 
-void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
+void setup_tissue_with_radius_parameter(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
 
 	double Xmin = microenvironment.mesh.x_coordinates[0]; 
@@ -406,6 +406,14 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 	} 
 	
 	return; 
+}
+
+void setup_tissue(Microenvironment& microenvironment , mpi_Environment &world, mpi_Cartesian &cart_topo ) #From _physiboss_cell_lines_mpi project
+{
+	// load cells from your CSV file
+    std::pair<double, double> x_range = microenvironment.get_subdomain_x_limits();
+    std::cout << "[Rank " << world.rank << "] Subdomain x-range: " << x_range.first << " to " << x_range.second << std::endl;
+	load_cells_from_pugixml(world, cart_topo, x_range); 	
 }
 
 // Custom cell phenotype function to scale immunostimulatory factor with hypoxia 
