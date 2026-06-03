@@ -44,38 +44,35 @@ Moore_Voxel_Info::Moore_Voxel_Info(std::vector<char>& buffer, int size, int &pos
     }
 }
 
-
+//TODO: 1: encapsulate the packing of each voxel's data into a separate function to avoid code repetition
 std::vector<Moore_Cell_Info> Cell_Container::get_moore_neighbour_cells(Cell* pCell, mpi_Environment &world, mpi_Cartesian &cart_topo){
     std::vector<Moore_Cell_Info> neighbours;
     int x_dim = pCell->get_container()->underlying_mesh.x_coordinates.size(); 
     int y_dim = pCell->get_container()->underlying_mesh.y_coordinates.size();
     int z_dim = pCell->get_container()->underlying_mesh.z_coordinates.size();
     
-    int local_vxl_inex = pCell->get_current_mechanics_voxel_index();
-    int position_voxel = (local_vxl_inex / (z_dim * y_dim));
+    int local_vxl_index = pCell->get_current_mechanics_voxel_index();
+    int position_voxel = (local_vxl_index / (z_dim * y_dim));
 
     if (position_voxel == 0  && world.rank > 0) { //left edge
-        int yx_index = local_vxl_inex %(y_dim*z_dim);
+        int yx_index = local_vxl_index %(y_dim*z_dim);
         std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_left[yx_index];
         for(int i=0; i<moore_list.size(); i++)
         {
             Moore_Voxel_Info &mvi = um_mbfl.at(moore_list[i]);
-                
             for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
-                //pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo); 
                 neighbours.push_back(mvi.moore_cells[cell_ctr]);
             }
         } 
     } 
-    else if (position_voxel == (x_dim-1) && (world.rank < world.size-1)) { //right edge
-        int yx_index = local_vxl_inex %(y_dim*z_dim);
+    if (position_voxel == (x_dim-1) && (world.rank < world.size-1)) { //right edge
+        int yx_index = local_vxl_index %(y_dim*z_dim);
         std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_right[yx_index];
         for(int i=0; i<moore_list.size(); i++)
         {
             Moore_Voxel_Info &mvi = um_mbfr.at(moore_list[i]);
                 
             for(int cell_ctr=0; cell_ctr<mvi.moore_cells.size(); cell_ctr++) {
-                //pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo); 
                 neighbours.push_back(mvi.moore_cells[cell_ctr]);
             }
         } 
@@ -83,37 +80,36 @@ std::vector<Moore_Cell_Info> Cell_Container::get_moore_neighbour_cells(Cell* pCe
     return neighbours;
 }
 
+//TODO: 1: encapsulate the packing of each voxel's data into a separate function to avoid code repetition
 std::vector<Interacting_Cell_Info> Cell_Container::get_neighbour_interacting_cells(Cell* pCell, mpi_Environment &world, mpi_Cartesian &cart_topo){
     std::vector<Interacting_Cell_Info> neighbours;
     int x_dim = pCell->get_container()->underlying_mesh.x_coordinates.size(); 
     int y_dim = pCell->get_container()->underlying_mesh.y_coordinates.size();
     int z_dim = pCell->get_container()->underlying_mesh.z_coordinates.size();
     
-    int local_vxl_inex = pCell->get_current_mechanics_voxel_index();
-    int position_voxel = (local_vxl_inex / (z_dim * y_dim));
+    int local_vxl_index = pCell->get_current_mechanics_voxel_index();
+    int position_voxel = (local_vxl_index / (z_dim * y_dim));
 
     if (position_voxel == 0  && world.rank > 0) { //left edge
-        int yx_index = local_vxl_inex %(y_dim*z_dim);
+        int yx_index = local_vxl_index %(y_dim*z_dim);
         std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_left[yx_index];
         for(int i=0; i<moore_list.size(); i++)
         {
             Interacting_Voxel &ivi = pCell->get_container()->um_ivfl.at(moore_list[i]);
                 
             for(int cell_ctr=0; cell_ctr<ivi.cells.size(); cell_ctr++) {
-                //pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo); 
                 neighbours.push_back(ivi.cells[cell_ctr]);
             }
         } 
     } 
     else if (position_voxel == (x_dim-1) && (world.rank < world.size-1)) { //right edge
-        int yx_index = local_vxl_inex %(y_dim*z_dim);
+        int yx_index = local_vxl_index %(y_dim*z_dim);
         std::vector<int> moore_list = pCell->get_container()->underlying_mesh.moore_connected_voxel_global_indices_right[yx_index];
         for(int i=0; i<moore_list.size(); i++)
         {
             Interacting_Voxel &ivi = pCell->get_container()->um_ivfr.at(moore_list[i]);
                 
             for(int cell_ctr=0; cell_ctr<ivi.cells.size(); cell_ctr++) {
-                //pCell->add_potentials(mvi.cells[cell_ctr], world, cart_topo); 
                 neighbours.push_back(ivi.cells[cell_ctr]);
             }
         } 
@@ -127,8 +123,7 @@ void Cell_Container::evaluate_cell_elastic_interactions( PhysiCell::Cell *pCell 
     for( int j=0; j < pCell->state.spring_attachments.size(); j++ )
     {
         Cell* pC1 = pCell->state.spring_attachments[j]; 
-        // standard_elastic_contact_function_confluent_rest_length(pC,pC->phenotype,pC1,pC1->phenotype,time_since_last_mechanics);  
-        standard_elastic_contact_function(pCell,pCell->phenotype,pC1,pC1->phenotype,dt_mec);  
+		standard_elastic_contact_function(pCell,pCell->phenotype,pC1,pC1->phenotype,dt_mec);  
     }
 
     //elastic interactions with other subdomains
@@ -144,16 +139,17 @@ void Cell_Container::evaluate_cell_elastic_interactions( PhysiCell::Cell *pCell 
         double probability_of_attachment = attachment_probability * pCell->phenotype.mechanics.cell_adhesion_affinities[neighbours[i].type];
         if (uniform_random() < probability_of_attachment) {
             standard_elastic_contact_function(pCell,pCell->phenotype, neighbours[i].position ,dt_mec, world, cart_topo);
-        }
+			++done_elastic;
+		}
         ++i;
-        ++done_elastic;
+        
     }
 }
 
 void Cell_Container::exchange_mechanics_halos(mpi_Environment &world, mpi_Cartesian &cart_topo) {
     // Exchange ghost cells for mechanical potentials and cell-cell interactions once per mechanics step.
     pack_moore_info(world, cart_topo);
-    //pack_cell_interact_info(world, cart_topo);
+    pack_cell_interact_info(world, cart_topo);
 }
 
 void Cell_Container::evaluate_cell_cell_interactions(double time_since_last_mechanics,  mpi_Environment &world, mpi_Cartesian &cart_topo) {
@@ -163,8 +159,8 @@ void Cell_Container::evaluate_cell_cell_interactions(double time_since_last_mech
     for( int i=0; i < (*all_cells).size(); i++ )
     {
         Cell* pC = (*all_cells)[i];
-
-        standard_cell_cell_interactions( pC, pC->phenotype, time_since_last_mechanics , world, cart_topo );
+		if (!pC->is_out_of_domain)
+        	standard_cell_cell_interactions( pC, pC->phenotype, time_since_last_mechanics , world, cart_topo );
     }
 
     unpack_cell_interact_info(world, cart_topo);
@@ -285,11 +281,6 @@ void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world,
 		}
 	}
  }
-
-		
-
-
-
 
 void Cell_Container::unpack(mpi_Environment &world, mpi_Cartesian &cart_topo)
 {
@@ -458,96 +449,5 @@ void Cell_Container::unpack_parallel(mpi_Environment &world, mpi_Cartesian &cart
 	//	std::cout << "\t [Rank " << world.rank << " ] Integration of unpacked cells completed total time " << duration_integration.count() << " microseconds for cells: " << no_of_cells_from_left + no_of_cells_from_right << std::endl;
 	//}
 }
-
-/*
-void Cell_Container::pack(std::vector<Cell*> *all_cells, mpi_Environment &world, mpi_Cartesian &cart_topo)
-{
-
-	int len_snd_buf_left  	 = 0;
-	int len_snd_buf_right 	 = 0;
-
-	Cell*pCell;
-
-	position_left 			 		= 0;					//Must be initialized to 0
-	position_right 			 		= 0;					//Must be initialized to 0
-	no_cells_cross_left  		= 0;					//Must be initialized to 0
-	no_cells_cross_right		= 0;					//Must be initialized to 0
-	no_of_cells_from_right 	= 0;
-	no_of_cells_from_left 	= 0;
-
-	snd_buf_left.resize(0); 					//When we enter function again, this is reset
-	snd_buf_right.resize(0);					//Reset the others also
-	rcv_buf_left.resize(0);
-	rcv_buf_right.resize(0);
-    snd_pos_left.clear();
-    snd_pos_right.clear();
-
-	for(int i=0; i<(*all_cells).size();i++)
-	{
-		pCell = (*all_cells)[i];
-		if(pCell->crossed_to_left_subdomain == true)
-			no_cells_cross_left++;
-		if(pCell->crossed_to_right_subdomain == true)
-			no_cells_cross_right++;
-	}
-
-    snd_pos_left.reserve(no_cells_cross_left);
-    snd_pos_right.reserve(no_cells_cross_right);
-    
-    int right = 0;
-    int left = 0;
-	
-	for(int i=0; i<(*all_cells).size();i++)
-	{
-		pCell = (*all_cells)[i];
-
-		if(pCell->crossed_to_left_subdomain == true){
-            snd_pos_left[left] = position_left;
-			pCell->pack(snd_buf_left, len_snd_buf_left, position_left);
-			left++;
-		}
-		if(pCell->crossed_to_right_subdomain == true){
-            snd_pos_right[right] = position_right;
-			pCell->pack(snd_buf_right, len_snd_buf_right, position_right);
-			right++;
-		}
-    }
- }
-
- void Cell_Container::unpack( mpi_Environment &world, mpi_Cartesian &cart_topo){
-
-    std::vector<Cell*> new_cells_from_left;
-    std::vector<Cell*> new_cells_from_right;
-
-    int len_rcv_buf_left = rcv_buf_left.size(); 
-    int len_rcv_buf_right = rcv_buf_right.size();
-
-    for (int i = 0; i < no_of_cells_from_left; ++i)
-    {
-        Cell* new_cell = new Cell();
-        new_cell->unpack(rcv_buf_left, len_rcv_buf_left, rcv_pos_left[i] );
-        new_cells_from_left.push_back(new_cell);
-    }
-    for (int i = 0; i < no_of_cells_from_right; ++i)
-    {
-        Cell* new_cell = new Cell();
-        new_cell->unpack(rcv_buf_right, len_rcv_buf_right, rcv_pos_right[i]);
-        new_cells_from_right.push_back(new_cell);
-    }
-
-    for (Cell* cell : new_cells_from_left)
-    {
-        cell->assign_position(cell->position);
-        (*all_cells).push_back(cell);
-    }
-    for (Cell* cell : new_cells_from_right)
-    {
-        cell->assign_position(cell->position);
-        (*all_cells).push_back(cell);
-    }
-
- }
-
-*/
 
 } // namespace PhysiCell

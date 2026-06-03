@@ -1053,6 +1053,24 @@ bool Cell::assign_position(double x, double y, double z)
 	// update current_mechanics_voxel_index
 	current_mechanics_voxel_index= get_container()->underlying_mesh.nearest_voxel_index( position );
 	
+	/*---------------------------------------------------------------------*/
+	/* VALIDATION FIRST: Check if position is valid before registering.    */
+	/* This prevents registering out-of-domain cells that would be clamped */
+	/* by nearest_voxel_index(), leaving them in a valid voxel while also  */
+	/* marked is_out_of_domain (inconsistent state).                       */
+	/*---------------------------------------------------------------------*/
+	
+	if( !get_container()->underlying_mesh.is_position_valid(x,y,z) )
+	{
+		is_out_of_domain = true;
+		is_active = false;
+		is_movable = false;
+		return false;
+	}
+
+	// Only register valid cells in the agent grid
+	get_container()->register_agent(this);
+
 	// Since it is most likely our first position, we update the max_cell_interactive_distance_in_voxel
 	// which was not initialized at cell creation
 	if( get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] < 
@@ -1062,18 +1080,7 @@ bool Cell::assign_position(double x, double y, double z)
 		get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] = phenotype.geometry.radius
 			* phenotype.mechanics.relative_maximum_adhesion_distance;
 	}
-	
-	get_container()->register_agent(this);
 
-	if( !get_container()->underlying_mesh.is_position_valid(x,y,z) )
-	{
-		is_out_of_domain = true;
-		is_active = false;
-		is_movable = false;
-
-		return false;
-	}
-	
 	return true;
 }
 
@@ -1096,6 +1103,13 @@ bool Cell::assign_position(double x, double y, double z, mpi_Environment &world,
 	/* If position invalid then sets out_of_domain=true, current_voxel_index=-1 & returns	*/
 	/* Otherwise calls nearest_voxel_local_index()<---new function (GS).									*/
 	/*------------------------------------------------------------------------------------*/
+	if( !get_container()->underlying_mesh.is_position_valid(x,y,z) )
+	{
+		is_out_of_domain = true;
+		is_active = false;
+		is_movable = false;
+		return false;
+	}
 
 	update_voxel_index(world, cart_topo);
 
@@ -1107,36 +1121,24 @@ bool Cell::assign_position(double x, double y, double z, mpi_Environment &world,
 	
 	//std::cout<<"("<<position[0]<<","<<position[1]<<","<<position[2]<<")"<<" current_mechanics_voxel_index="<<current_mechanics_voxel_index<<std::endl;
 
+	/*--------------------------------------------------------------------------------------------*/
+	/* VALIDATION FIRST: Check if position is valid before registering in agent_grid.            */
+	/* This prevents registering out-of-domain cells that would be clamped by nearest_voxel_*() */
+	/* Note: update_voxel_index() above already called is_position_valid() internally, but we    */
+	/* re-validate here explicitly to catch any position corrections and handle them correctly.  */
+	/*--------------------------------------------------------------------------------------------*/
+
+	
+	// Only register valid cells in the agent grid
+	get_container()->register_agent(this);
+
 	// Since it is most likely our first position, we update the max_cell_interactive_distance_in_voxel
 	// which was not initialized at cell creation
 	if( get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] < 
 		phenotype.geometry.radius * phenotype.mechanics.relative_maximum_adhesion_distance )
 	{
-		// get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()]= phenotype.geometry.radius*parameters.max_interaction_distance_factor;
 		get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] = phenotype.geometry.radius
 			* phenotype.mechanics.relative_maximum_adhesion_distance;
-	}
-	
-	get_container()->register_agent(this);
-
-	/*--------------------------------------------------------------------------------------------*/
-	/* What is the need to call this from underlying_mesh ? the boundaries of the physical domain */
-	/* remain the same.  																																					*/
-	/* IMPORTANT: update_voxel_index() above calls a "position" modifying function created by 		*/
-	/* Gaurav Saxena which adjusts cell positions if it doesn't respect sub-domain boundaries.		*/
-	/* Hence, when calling !get_container()->underlying_mesh.is_position_valid(x,y,z), it is 			*/
-	/* BETTER to replace (x,y,z) with (position[0], position[1], position[2]) as after calling		*/
-	/* the function correct_position_within_subdomain(), MAYBE position[0] != x, position[1] != y,*/
-	/* position[2] !=z. BUT for NOW let it remain like this, THINK then replace										*/
-	/*--------------------------------------------------------------------------------------------*/
-
-	if( !get_container()->underlying_mesh.is_position_valid(x,y,z) )
-	{
-		is_out_of_domain = true;
-		is_active = false;
-		is_movable = false;
-
-		return false;
 	}
 
 	return true;
@@ -1831,7 +1833,9 @@ Cell* create_cell( Cell* (*custom_instantiate)(),  int p_ID )
 		pNew = standard_instantiate_cell();
 	}
 
-	pNew = new Cell(p_ID);
+	// Set the ID on the instantiated cell (don't create a new one and discard the custom cell)
+	pNew->ID = p_ID;
+	
 	(*all_cells).push_back( pNew );
 	pNew->index=(*all_cells).size()-1;
 
@@ -2360,9 +2364,12 @@ void Cell::attack_cell( Interacting_Cell_Info* pCell_to_attack , double dt )
 	// make this thread safe 
 	#pragma omp critical
 	{ 
+		double new_damage = phenotype.cell_interactions.attack_damage_rate * dt;
 		pCell_to_attack->attacked = true;
-		pCell_to_attack->damage_suffered += phenotype.cell_interactions.attack_damage_rate * dt; 
+		pCell_to_attack->damage_suffered += new_damage; 
 		pCell_to_attack->time_attacked += dt; 
+		// Maintain coherency with local attack: update attacker's damage delivered
+		phenotype.cell_interactions.total_damage_delivered += new_damage;
 	}
 	return; 
 }
@@ -2371,6 +2378,8 @@ void Cell::was_attacked(double damage_suffered, double time_attacked) {
 	#pragma omp critical
 	{ 
 		phenotype.cell_integrity.damage += damage_suffered;
+		// Maintain coherency with local attack: update total attack time from ghost
+		state.total_attack_time += time_attacked;
 	}
 }
 

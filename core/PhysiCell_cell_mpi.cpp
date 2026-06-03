@@ -16,10 +16,12 @@
 #include "../addons/dFBA/src/dfba_intracellular.h"
 #endif
 
-#include<limits.h>
-#include <signal.h> //for segfault
+#include <iostream>
+#include <iomanip>  // for std::setprecision
 #include <algorithm>
-#include <iterator>
+#include <cstdlib> // for rand()
+#include <ctime>   // for seeding rand()
+
 
 using namespace PhysiCell;
 
@@ -820,6 +822,7 @@ void Cell::pack_light(std::vector<char>& snd_buffer, int& len_buffer, int& posit
 	pack_buff( this->ID , snd_buffer, len_buffer, position );
 	pack_buff( this->type , snd_buffer, len_buffer, position );
 	pack_buff( this->position , snd_buffer, len_buffer, position );
+    pack_buff( this->is_movable, snd_buffer, len_buffer, position );
 
 	pack_custom_data_values_light( this->custom_data , snd_buffer, len_buffer, position );
 	this->state.pack( snd_buffer, len_buffer, position );
@@ -837,9 +840,11 @@ void Cell::unpack_light(std::vector<char>& rcv_buffer, int& len_buffer, int& pos
 	unpack_buff( this->type , rcv_buffer, len_buffer, position );
 
 	Cell_Definition* pCD = find_cell_definition( this->type );
-	restore_cell_from_definition( this , pCD );
+    if (pCD != NULL)
+	    restore_cell_from_definition( this , pCD );
 
 	unpack_buff( this->position , rcv_buffer, len_buffer, position );
+    unpack_buff( this->is_movable, rcv_buffer, len_buffer, position );
 
 	unpack_custom_data_values_light( this->custom_data , rcv_buffer, len_buffer, position );
 	this->state.unpack( rcv_buffer, len_buffer, position );
@@ -855,10 +860,8 @@ void Cell::unpack_light(std::vector<char>& rcv_buffer, int& len_buffer, int& pos
 	this->set_is_volume_changed( true );
 }
 
-#include <iostream>
-#include <iomanip>  // for std::setprecision
 
-//Jose: it does not print all parametes, but enought to know if pack/unpack are coherent
+//note: it does not print all parametes, but enought to know if pack/unpack are coherent
 void Cell::print_parameters(std::ofstream& outFile) {
     outFile << std::fixed << std::setprecision(2); // for nicer floating-point printing
 
@@ -1067,9 +1070,6 @@ void Cell::print_parameters(std::ofstream& outFile) {
 
     outFile << "------ End of Cell parameters ------\n";
 }
-
-#include <cstdlib> // for rand()
-#include <ctime>   // for seeding rand()
 
 void Cell::initialize_random() {
     // Seed random number generator

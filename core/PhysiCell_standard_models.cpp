@@ -1149,22 +1149,53 @@ void advanced_chemotaxis_function( Cell* pCell, Phenotype& phenotype , double dt
 void standard_elastic_contact_function( Cell* pC1, Phenotype& p1, Cell* pC2, Phenotype& p2 , double dt )
 {
 	if( pC1->position.size() != 3 || pC2->position.size() != 3 )
-	{
-		/*
-		#pragma omp critical
-		{
-			std::cout << "what?! " << std::endl
-			<< pC1 << " : " << pC1->type << " " << pC1->type_name << " " << pC1->position << std::endl 
-			<< pC2 << " : " << pC2->type << " " << pC2->type_name << " " << pC2->position << std::endl ;
-		}*/
-		return; 
-	}
+	{ return; }
 	
 	std::vector<double> displacement = pC2->position;
 	displacement -= pC1->position; 
-	// std::cout << "vel: " << pC1->velocity << " disp: " << displacement << " e: " << p1.mechanics.attachment_elastic_constant << " vel new: "; 
-	axpy( &(pC1->velocity) , p1.mechanics.attachment_elastic_constant , displacement ); 
-	// std::cout << pC1->velocity << std::endl << std::endl; 
+	
+	// update May 2022 - effective adhesion 
+	int ii = find_cell_definition_index( pC1->type ); 
+	int jj = find_cell_definition_index( pC2->type ); 
+
+	double adhesion_ii = pC1->phenotype.mechanics.attachment_elastic_constant * pC1->phenotype.mechanics.cell_adhesion_affinities[jj]; 
+	double adhesion_jj = pC2->phenotype.mechanics.attachment_elastic_constant * pC2->phenotype.mechanics.cell_adhesion_affinities[ii]; 
+
+	double effective_attachment_elastic_constant = sqrt( adhesion_ii*adhesion_jj ); 
+
+	// axpy( &(pC1->velocity) , p1.mechanics.attachment_elastic_constant , displacement ); 
+	axpy( &(pC1->velocity) , effective_attachment_elastic_constant , displacement ); 
+
+	return; 
+}
+
+void standard_elastic_contact_function_confluent_rest_length( Cell* pC1, Phenotype& p1, Cell* pC2, Phenotype& p2 , double dt )
+{
+	if( pC1->position.size() != 3 || pC2->position.size() != 3 )
+	{ return; }
+	
+	std::vector<double> displacement = pC2->position;
+	displacement -= pC1->position; 
+
+	// update May 2022 - effective adhesion 
+	int ii = find_cell_definition_index( pC1->type ); 
+	int jj = find_cell_definition_index( pC2->type ); 
+
+	double adhesion_ii = pC1->phenotype.mechanics.attachment_elastic_constant * pC1->phenotype.mechanics.cell_adhesion_affinities[jj]; 
+	double adhesion_jj = pC2->phenotype.mechanics.attachment_elastic_constant * pC2->phenotype.mechanics.cell_adhesion_affinities[ii]; 
+
+	double effective_attachment_elastic_constant = sqrt( adhesion_ii*adhesion_jj ); 
+	// axpy( &(pC1->velocity) , effective_attachment_elastic_constant , displacement ); 
+
+	// have the adhesion strength taper away at this rest lenght
+	// set the rest length = confluent cell-cell spacing 
+	// 
+	double rest_length = ( p1.geometry.radius + p2.geometry.radius ) * 0.9523809523809523;  
+
+	double strength = ( norm(displacement) - rest_length )*effective_attachment_elastic_constant;
+	normalize( &displacement );
+	axpy( &(pC1->velocity) , strength , displacement ); 
+
 	return; 
 }
 

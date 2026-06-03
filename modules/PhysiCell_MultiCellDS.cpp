@@ -1255,12 +1255,23 @@ void add_PhysiCell_cells_to_open_xml_pugi_v2( pugi::xml_document& xml_dom, std::
 	static int m =  microenvironment.number_of_densities(); // number_of_substrates  
 	// get number of cell types
 	static int n = cell_definition_indices_by_name.size(); // number_of_cell_types
-	// get number of death models 
+	// get number of death models
 	int nd = 0;
-	if ((*all_cells).size() > 0)
+	if( (*all_cells).size() > 0 )
 	{
-		nd = (*all_cells)[0]->phenotype.death.rates.size(); // 
+		nd = (*all_cells)[0]->phenotype.death.rates.size();
 	}
+	else if( cell_definitions_by_index.size() > 0 )
+	{
+		nd = cell_definitions_by_index[0]->phenotype.death.rates.size();
+	}
+	else
+	{
+		nd = cell_defaults.phenotype.death.rates.size();
+	}
+	int global_nd = 0;
+	MPI_Allreduce( &nd, &global_nd, 1, MPI_INT, MPI_MAX, cart_topo.mpi_cart_comm );
+	nd = global_nd;
 		
 	// get number of custom data 
 	static int nc = 0; // 
