@@ -1,7 +1,7 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
-PROGRAM_NAME := spheroid_TNF_model_mpi
+PROGRAM_NAME := project
 
-CC := mpic++
+CC := g++
 # CC := g++-mp-7 # typical macports compiler name
 # CC := g++-7 # typical homebrew compiler name 
 
@@ -10,40 +10,6 @@ CC := mpic++
 ifdef PHYSICELL_CPP 
 	CC := $(PHYSICELL_CPP)
 endif
-
-### MaBoSS configuration 
-# MaBoSS max nodes
-ifndef MABOSS_MAX_NODES
-MABOSS_MAX_NODES = 64
-endif
-
-# MaBoSS directory
-MABOSS_DIR = addons/PhysiBoSS/MaBoSS/engine
-CUR_DIR = $(shell pwd)
-
-ifneq ($(OS), Windows_NT)
-	LDL_FLAG = -ldl
-endif
-
-LIB := -L$(CUR_DIR)/$(MABOSS_DIR)/lib -lMaBoSS-static $(LDL_FLAG)
-INC := -DADDON_PHYSIBOSS -I$(CUR_DIR)/$(MABOSS_DIR)/include -DMAXNODES=$(MABOSS_MAX_NODES)
-
-
-# If max nodes > 64, change lib path 
-ifeq ($(shell expr $(MABOSS_MAX_NODES) '>' 64), 1)
-LIB := -L$(CUR_DIR)/$(MABOSS_DIR)/lib -lMaBoSS_$(MABOSS_MAX_NODES)n-static $(LDL_FLAG)
-endif
-
-USE_JEMALLOC ?= 0
-JEMALLOC_LIB :=
-
-ifeq ($(USE_JEMALLOC),1)
-	# jemalloc include/library directories are expected to come from the
-	# environment, e.g. CPLUS_INCLUDE_PATH and LIBRARY_PATH.
-	JEMALLOC_LIB += -Wl,--no-as-needed -ljemalloc -Wl,--as-needed
-endif
-
-LIB += $(JEMALLOC_LIB)
 
 ARCH := native # best auto-tuning
 # ARCH := core2 # a reasonably safe default for most CPUs since 2007
@@ -63,65 +29,215 @@ ARCH := native # best auto-tuning
 # ARCH := skylake-avx512
 # ARCH := nocona #64-bit pentium 4 or later 
 
-# Without debug symbol
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
-CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -m64 -std=c++11 -g -fopenmp -DADDON_PHYSIBOSS -DMECHS_TIME
-LDFLAGS := -no-pie
+CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 
-# Normal compilation with debug symbols
-
-
-# -O1 or -O0 optimization level + debug symbols for Valgrind (DOESN'T WORK)
-# CFLAGS := -march=$(ARCH) -O1 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g
-
-# -O1 or -O0 optimization level + WITHOUT OpenMP + debug symbols for Valgrind + WITHOUT -march=native (WORKS)
-# CFLAGS := -O1 -fomit-frame-pointer -mfpmath=both -m64 -std=c++11 -g
-
-COMPILE_COMMAND := $(CC) $(CFLAGS) $(INC)
-
-DistPhy_OBJECTS:= DistPhy_Environment.o DistPhy_Cartesian.o DistPhy_Utils.o DistPhy_Collective.o
+COMPILE_COMMAND := $(CC) $(CFLAGS) 
 
 BioFVM_OBJECTS := BioFVM_vector.o BioFVM_mesh.o BioFVM_microenvironment.o BioFVM_solvers.o BioFVM_matlab.o \
 BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_container.o 
 
-PhysiCell_core_OBJECTS := PhysiCell_phenotype.o PhysiCell_cell_container.o PhysiCell_standard_models.o PhysiCell_cell.o \
-PhysiCell_custom.o PhysiCell_utilities.o PhysiCell_constants.o PhysiCell_cell_mpi.o PhysiCell_signal_behavior.o \
-PhysiCell_rules.o PhysiCell_basic_signaling.o PhysiCell_cell_container_mechanics.o \
-PhysiCell_standard_models_mpi.o 
+PhysiCell_core_OBJECTS := PhysiCell_phenotype.o PhysiCell_cell_container.o PhysiCell_standard_models.o \
+PhysiCell_cell.o PhysiCell_custom.o PhysiCell_utilities.o PhysiCell_constants.o
 
-PhysiCell_module_OBJECTS :=  PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o \
-PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o PhysiCell_geometry.o
+PhysiCell_module_OBJECTS := PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o \
+PhysiCell_pugixml.o PhysiCell_settings.o
 
-# put your custom objects here (they should be in the custom_modules directory)  
+# put your custom objects here (they should be in the custom_modules directory)
 
-PhysiBoSS_OBJECTS := maboss_network.o maboss_intracellular.o
-
-PhysiCell_custom_module_OBJECTS := custom.o submodel_data_structures.o tnf_receptor_dynamics.o tnf_boolean_model_interface.o
+PhysiCell_custom_module_OBJECTS := .o
 
 pugixml_OBJECTS := pugixml.o
 
-PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJECTS) $(PhysiCell_module_OBJECTS) $(DistPhy_OBJECTS)
-ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS) $(PhysiBoSS_OBJECTS)
+PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJECTS) $(PhysiCell_module_OBJECTS)
+ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS)
 
-# compile the project 
-name:
-	@echo "\n\nExecutable name is " $(PROGRAM_NAME) " \n"
+EXAMPLES := ./examples/PhysiCell_test_mechanics_1.cpp ./examples/PhysiCell_test_mechanics_2.cpp \
+ ./examples/PhysiCell_test_DCIS.cpp ./examples/PhysiCell_test_HDS.cpp \
+ ./examples/PhysiCell_test_cell_cycle.cpp ./examples/PhysiCell_test_volume.cpp 
+
+all: 
+	make heterogeneity-sample
+	make 
+
+# sample projects 	
+list-projects:
+	@echo "Sample projects: template2D template3D biorobots-sample cancer-biorobots-sample heterogeneity-sample-mpi"
+	@echo "                 cancer-immune-sample virus-macrophage-sample pred-prey-mpi pred-prey-farmer"
+	@echo ""
+	@echo "Sample intracellular projects: physiboss-cell-lines-mpi physiboss-tnf-model-mpi alajuela"
+	@echo ""
+	@echo ""
 	
-all: MaBoSS main.cpp $(ALL_OBJECTS)
-	$(COMPILE_COMMAND) $(LDFLAGS) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp $(LIB)
+# ---- non-intracellular projects 	
+template2D: 
+	cp ./sample_projects/template2D/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/template2D/main-2D.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/template2D/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/template2D/config/* ./config/
+	
+template3D: 	
+	cp ./sample_projects/template3D/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/template3D/main-3D.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/template3D/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/template3D/config/* ./config/
+	
+pred-prey-mpi:
+	cp ./sample_projects/pred_prey_mpi/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/pred_prey_mpi/main.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/pred_prey_mpi/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/pred_prey_mpi/config/* ./config/
+	
+# sample projects 
+
+biorobots-sample:
+	cp ./sample_projects/biorobots/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/biorobots/main-biorobots.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/biorobots/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/biorobots/config/* ./config/
+	
+cancer-biorobots-sample:
+	cp ./sample_projects/cancer_biorobots/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/cancer_biorobots/main-cancer_biorobots.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/cancer_biorobots/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/cancer_biorobots/config/* ./config/
+	
+heterogeneity-sample-mpi:
+	cp ./sample_projects/heterogeneity_mpi/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/heterogeneity_mpi/main-heterogeneity.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/heterogeneity_mpi/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/heterogeneity_mpi/config/* ./config/
+	
+cancer-immune-sample:
+	cp ./sample_projects/cancer_immune/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/cancer_immune/main-cancer_immune_3D.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/cancer_immune/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/cancer_immune/config/* ./config/
+	
+virus-macrophage-sample:
+	cp ./sample_projects/virus_macrophage/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/virus_macrophage/main-virus_macrophage.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/virus_macrophage/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/virus_macrophage/config/* ./config/
+	
+pred-prey-farmer:
+	cp ./sample_projects/pred_prey_farmer/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/pred_prey_farmer/main.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/pred_prey_farmer/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/pred_prey_farmer/config/* ./config/
+	
+beta-testing:
+	cp ./sample_projects/beta_testing/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/beta_testing/main-beta.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/beta_testing/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/beta_testing/config/* ./config/
+	
+# ---- intracellular projects 
+
+physiboss-cell-lines-mpi:
+	cp ./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/main.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/config/* ./config/
+
+physiboss-tnf-model:
+	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model/main-spheroid_TNF.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model/config/* ./config/
+	
+physiboss-tnf-model-mpi:
+	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/main-spheroid_TNF.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/config/* ./config/
+	cp -r ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/scripts ./
+
+alajuela:
+	cp ./sample_projects_intracellular/boolean/alajuela/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/boolean/alajuela/main.cpp ./main.cpp
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/boolean/alajuela/Makefile ./
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
+	cp ./sample_projects_intracellular/boolean/alajuela/config/* ./config/
+	
+test-case-mpi:
+	cp ./sample_projects/test_case/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/test_case/main_test_case.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/test_case/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/test_case/config/* ./config/	
+# early examples for convergence testing 
+
+physicell_test_mech1: $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_mechanics_1.cpp 
+	$(COMPILE_COMMAND) -o test_mech1 $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_mechanics_1.cpp
+
+physicell_test_mech2: $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_mechanics_2.cpp 
+	$(COMPILE_COMMAND) -o test_mech2 $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_mechanics_2.cpp
+	
+physicell_test_DCIS: $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_DCIS.cpp 
+	$(COMPILE_COMMAND) -o test_DCIS $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_DCIS.cpp
+
+physicell_test_HDS: $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_HDS.cpp 
+	$(COMPILE_COMMAND) -o test_HDS $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_HDS.cpp
+
+physicell_test_cell_cycle: $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_cell_cycle.cpp 
+	$(COMPILE_COMMAND) -o test_cycle $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_cell_cycle.cpp
+
+PhysiCell_test_volume: $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_volume.cpp 
+	$(COMPILE_COMMAND) -o test_volume $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_volume.cpp
+	
+examples: $(PhysiCell_OBJECTS) 
+	$(COMPILE_COMMAND) -o ./examples/test_mech1 ./examples/PhysiCell_test_mechanics_1.cpp $(PhysiCell_OBJECTS)
+	$(COMPILE_COMMAND) -o ./examples/test_mech2 ./examples/PhysiCell_test_mechanics_2.cpp $(PhysiCell_OBJECTS)
+	$(COMPILE_COMMAND) -o ./examples/test_DCIS ./examples/PhysiCell_test_DCIS.cpp $(PhysiCell_OBJECTS)
+	$(COMPILE_COMMAND) -o ./examples/test_HDS ./examples/PhysiCell_test_HDS.cpp $(PhysiCell_OBJECTS)
+	$(COMPILE_COMMAND) -o ./examples/test_cycle ./examples/PhysiCell_test_cell_cycle.cpp $(PhysiCell_OBJECTS)
+	$(COMPILE_COMMAND) -o ./examples/test_volume ./examples/PhysiCell_test_volume.cpp $(PhysiCell_OBJECTS)
 
 # PhysiCell core components	
-DistPhy_Environment.o: ./DistPhy/DistPhy_Environment.cpp
-	$(COMPILE_COMMAND) -c ./DistPhy/DistPhy_Environment.cpp
-
-DistPhy_Cartesian.o: ./DistPhy/DistPhy_Cartesian.cpp
-	$(COMPILE_COMMAND) -c ./DistPhy/DistPhy_Cartesian.cpp
-	
-DistPhy_Utils.o: ./DistPhy/DistPhy_Utils.cpp
-	$(COMPILE_COMMAND) -c ./DistPhy/DistPhy_Utils.cpp
-	
-DistPhy_Collective.o: ./DistPhy/DistPhy_Collective.cpp
-	$(COMPILE_COMMAND) -c ./DistPhy/DistPhy_Collective.cpp
 
 PhysiCell_phenotype.o: ./core/PhysiCell_phenotype.cpp
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_phenotype.cpp
@@ -130,10 +246,7 @@ PhysiCell_digital_cell_line.o: ./core/PhysiCell_digital_cell_line.cpp
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_digital_cell_line.cpp
 
 PhysiCell_cell.o: ./core/PhysiCell_cell.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell.cpp
-
-PhysiCell_cell_mpi.o: ./core/PhysiCell_cell_mpi.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell_mpi.cpp 
+	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell.cpp 
 
 PhysiCell_cell_container.o: ./core/PhysiCell_cell_container.cpp
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell_container.cpp 
@@ -149,24 +262,6 @@ PhysiCell_custom.o: ./core/PhysiCell_custom.cpp
 	
 PhysiCell_constants.o: ./core/PhysiCell_constants.cpp
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_constants.cpp 
-
-PhysiCell_signal_behavior.o: ./core/PhysiCell_signal_behavior.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_signal_behavior.cpp
-
-PhysiCell_rules.o: ./core/PhysiCell_rules.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_rules.cpp
-
-PhysiCell_basic_signaling.o: ./core/PhysiCell_basic_signaling.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_basic_signaling.cpp
-
-PhysiCell_cell_container_mechanics.o: ./core/PhysiCell_cell_container_mechanics.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell_container_mechanics.cpp
-
-PhysiCell_standard_models_mpi.o: ./core/PhysiCell_standard_models_mpi.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_standard_models_mpi.cpp
-
-PhysiCell_geometry.o: ./modules/PhysiCell_geometry.cpp
-	$(COMPILE_COMMAND) -c ./modules/PhysiCell_geometry.cpp     
 	
 # BioFVM core components (needed by PhysiCell)
 	
@@ -208,9 +303,6 @@ PhysiCell_SVG.o: ./modules/PhysiCell_SVG.cpp
 PhysiCell_pathology.o: ./modules/PhysiCell_pathology.cpp
 	$(COMPILE_COMMAND) -c ./modules/PhysiCell_pathology.cpp
 
-PhysiCell_pathology_SVG.o: ./modules/PhysiCell_pathology_SVG.cpp
-	$(COMPILE_COMMAND) -c ./modules/PhysiCell_pathology_SVG.cpp
-
 PhysiCell_MultiCellDS.o: ./modules/PhysiCell_MultiCellDS.cpp
 	$(COMPILE_COMMAND) -c ./modules/PhysiCell_MultiCellDS.cpp
 
@@ -221,55 +313,22 @@ PhysiCell_pugixml.o: ./modules/PhysiCell_pugixml.cpp
 	$(COMPILE_COMMAND) -c ./modules/PhysiCell_pugixml.cpp
 	
 PhysiCell_settings.o: ./modules/PhysiCell_settings.cpp
-	$(COMPILE_COMMAND)  -c ./modules/PhysiCell_settings.cpp	
+	$(COMPILE_COMMAND) -c ./modules/PhysiCell_settings.cpp	
 	
 # user-defined PhysiCell modules
-
-MaBoSS: 
-ifeq ($(OS), Windows_NT)
-	python addons/PhysiBoSS/setup_libmaboss.py
-else
-	python3 addons/PhysiBoSS/setup_libmaboss.py
-endif
-
-maboss_network.o: ./addons/PhysiBoSS/src/maboss_network.cpp
-	$(COMPILE_COMMAND) -c ./addons/PhysiBoSS/src/maboss_network.cpp
-
-maboss_intracellular.o: ./addons/PhysiBoSS/src/maboss_intracellular.cpp
-	$(COMPILE_COMMAND) -c ./addons/PhysiBoSS/src/maboss_intracellular.cpp
-
-custom.o: ./custom_modules/custom.cpp
-	$(COMPILE_COMMAND) -c ./custom_modules/custom.cpp
-	
-tnf_boolean_model_interface.o: ./custom_modules/tnf_boolean_model_interface.cpp
-	$(COMPILE_COMMAND) -c ./custom_modules/tnf_boolean_model_interface.cpp
-
-tnf_receptor_dynamics.o: ./custom_modules/tnf_receptor_dynamics.cpp
-	$(COMPILE_COMMAND) -c ./custom_modules/tnf_receptor_dynamics.cpp
-
-submodel_data_structures.o: ./custom_modules/submodel_data_structures.cpp
-	$(COMPILE_COMMAND) -c ./custom_modules/submodel_data_structures.cpp
 
 # cleanup
 
 reset:
 	rm -f *.cpp 
-	cp Makefile-backup Makefile 
+	cp ./sample_projects/Makefile-default Makefile 
 	rm -f ./custom_modules/*
 	touch ./custom_modules/empty.txt 
 	touch ALL_CITATIONS.txt 
 	rm ALL_CITATIONS.txt 
 	cp ./config/PhysiCell_settings-backup.xml ./config/PhysiCell_settings.xml 
-	rm -f ./config/init.txt
-	rm -f ./config/TNF_conf.cfg
-	rm -f ./config/TNF_nodes.bnd
-	rm -fr ./scripts
-
-MaBoSS-clean:
-	rm -fr addons/PhysiBoSS/MaBoSS-env-2.0
 	
 clean:
-	# MaBoSS-clean
 	rm -f *.o
 	rm -f $(PROGRAM_NAME)*
 	
@@ -277,14 +336,15 @@ data-cleanup:
 	rm -f *.mat
 	rm -f *.xml
 	rm -f *.svg
-	rm -f ./output/*
+	rm -rf ./output
+	mkdir ./output
 	touch ./output/empty.txt
 	
 # archival 
 
 checkpoint: 
 	zip -r $$(date +%b_%d_%Y_%H%M).zip Makefile *.cpp *.h config/*.xml custom_modules/* 
-
+	
 zip:
 	zip -r latest.zip Makefile* *.cpp *.h BioFVM/* config/* core/* custom_modules/* matlab/* modules/* sample_projects/* 
 	cp latest.zip $$(date +%b_%d_%Y_%H%M).zip
