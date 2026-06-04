@@ -408,7 +408,7 @@ void setup_tissue_with_radius_parameter(Microenvironment &m, mpi_Environment &wo
 	return; 
 }
 
-void setup_tissue(Microenvironment& microenvironment , mpi_Environment &world, mpi_Cartesian &cart_topo ) #From _physiboss_cell_lines_mpi project
+void setup_tissue(Microenvironment& microenvironment , mpi_Environment &world, mpi_Cartesian &cart_topo ) // From _physiboss_cell_lines_mpi project
 {
 	// load cells from your CSV file
     std::pair<double, double> x_range = microenvironment.get_subdomain_x_limits();
