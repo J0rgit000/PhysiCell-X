@@ -65,8 +65,8 @@ list-projects:
 	@echo "Sample projects: template2D template3D biorobots-sample cancer-biorobots-sample heterogeneity-sample-mpi"
 	@echo "                 cancer-immune-sample virus-macrophage-sample pred-prey-mpi pred-prey-farmer"
 	@echo ""
-	@echo "Sample intracellular projects: physiboss-cell-lines-mpi physiboss-tnf-model-mpi alajuela"
-	@echo ""
+	@echo "Sample intracellular projects: ode-energy-sample physiboss-cell-lines-sample cancer-metabolism-sample"
+	@echo "physiboss-cell-lines-mpi physiboss-tnf-model physiboss-tnf-model-mpi"
 	@echo ""
 	
 # ---- non-intracellular projects 	
@@ -163,6 +163,23 @@ beta-testing:
 	cp ./sample_projects/beta_testing/config/* ./config/
 	
 # ---- intracellular projects 
+ode-energy-sample:
+	cp ./sample_projects_intracellular/ode/ode_energy/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/ode/ode_energy/main.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/ode/ode_energy/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects_intracellular/ode/ode_energy/config/* ./config/	
+
+physiboss-cell-lines-sample:
+	cp ./sample_projects_intracellular/boolean/physiboss_cell_lines/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/boolean/physiboss_cell_lines/main.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/boolean/physiboss_cell_lines/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects_intracellular/boolean/physiboss_cell_lines/config/* ./config/
 
 physiboss-cell-lines-mpi:
 	cp ./sample_projects_intracellular/boolean/physiboss_cell_lines_mpi/custom_modules/* ./custom_modules/
@@ -190,17 +207,24 @@ physiboss-tnf-model-mpi:
 	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
 	cp ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/config/* ./config/
-	cp -r ./sample_projects_intracellular/boolean/spheroid_tnf_model_mpi/scripts ./
 
-alajuela:
-	cp ./sample_projects_intracellular/boolean/alajuela/custom_modules/* ./custom_modules/
+ecoli-acetic-switch-sample:
+	cp ./sample_projects_intracellular/fba/ecoli_acetic_switch/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
-	cp ./sample_projects_intracellular/boolean/alajuela/main.cpp ./main.cpp
+	cp ./sample_projects_intracellular/fba/ecoli_acetic_switch/main_ecoli_acetic_switch.cpp ./main.cpp
 	cp Makefile Makefile-backup
-	cp ./sample_projects_intracellular/boolean/alajuela/Makefile ./
+	cp ./sample_projects_intracellular/fba/ecoli_acetic_switch/Makefile ./
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
-	cp ./sample_projects_intracellular/boolean/alajuela/config/* ./config/
-	
+	cp ./sample_projects_intracellular/fba/ecoli_acetic_switch/config/* ./config/
+
+cancer-metabolism-sample:
+	cp ./sample_projects_intracellular/fba/cancer_metabolism/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/fba/cancer_metabolism/main.cpp ./main.cpp
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/fba/cancer_metabolism/Makefile ./
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
+	cp ./sample_projects_intracellular/fba/cancer_metabolism/config/* ./config/
 test-case-mpi:
 	cp ./sample_projects/test_case/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp

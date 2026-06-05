@@ -32,7 +32,7 @@
     </overall>
 
     <parallel>
-        <omp_num_threads>56</omp_num_threads>
+        <omp_num_threads>2</omp_num_threads>
     </parallel>
 
     <save>
