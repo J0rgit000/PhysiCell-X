@@ -308,3 +308,72 @@ int total_apoptosis_cell_count(mpi_Environment &world, mpi_Cartesian &cart_topo)
 
 	return DistPhy::mpi::distribute_global_sum(local_count, cart_topo);
 }
+
+std::vector<std::string> prolif_apoptosis_coloring( Cell* pCell )
+{
+	std::vector<std::string> output;
+	if (pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::apoptosis_death_model)
+	{
+		//apoptotic cells are colored red
+		output = {"crimson", "black","darkred", "darkred"};
+	}
+
+	else if (pCell->phenotype.cycle.current_phase().code == PhysiCell_constants::necrosis_death_model)
+	{
+		//necrotic cells are colored brown
+		output = {"peru", "black","saddlebrown", "saddlebrown"};
+	}
+
+	else if (PhysiCell::parameters.ints("simulation_mode") == 0) 
+	{
+		std::string drug_name = microenvironment.density_names[1];
+		if (pCell->type_name == drug_name + "_sensitive")
+		{
+			//drug sensitive living cells are colored blue
+			output = {"deepskyblue", "black", "darkblue", "darkblue"};
+		} 
+		else 
+		{
+			//drug resistant living cells are colored green
+			output = {"limegreen", "black", "darkgreen", "darkgreen"};
+		}
+	}
+	else if (PhysiCell::parameters.ints("simulation_mode") == 1) 
+	{
+		// // color living cells just in one color 
+		// output = {"limegreen", "black", "darkgreen", "darkgreen"};
+
+		// In case we want to color all 4 strains differently:
+		// double inhibitions --> 4 cell strains 
+		std::string drug1_name = microenvironment.density_names[1];
+		std::string drug2_name = microenvironment.density_names[2]; 
+		if (pCell->type_name == drug1_name + "_sensitive")
+		{
+			//cells that are sensitive to both drugs are colored blue
+			output = {"deepskyblue", "black", "darkblue", "darkblue"};
+		}
+		else if (pCell->type_name == drug2_name + "_resistant")
+		{
+			// cells that are just sensitive to the first drug 
+			output = {"limegreen", "black", "darkgreen", "darkgreen"};
+
+		}
+		else if (pCell->type_name == drug2_name + "_sensitive")
+		{
+			// cells are just sensitive to the second drug
+			output = {"gold", "black", "orange", "orange"};
+		}
+		else 
+		{
+			// cells aren't sensitive to any drug
+			output = {"mediumorchid", "black", "mediumpurple", "mediumpurple"};
+		}
+	}
+	else 
+	{
+		// no drug simulation - living cells are colored green
+		output = {"limegreen", "black", "darkgreen", "darkgreen"};
+	}
+	return output;
+
+}

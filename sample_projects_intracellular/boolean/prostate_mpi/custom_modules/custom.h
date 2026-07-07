@@ -91,6 +91,7 @@ void setup_tissue(Microenvironment & microenvironment, mpi_Environment &world, m
 void setup_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo);
 
 std::vector<std::string> my_coloring_function( Cell* );
+std::vector<std::string> prolif_apoptosis_coloring( Cell* pCell );
 
 // custom cell phenotype functions could go here 
 //void tumor_cell_phenotype_with_signaling( Cell* pCell, Phenotype& phenotype, double dt , mpi_Environment &world, mpi_Cartesian &cart_topo);

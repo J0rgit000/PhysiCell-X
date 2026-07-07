@@ -207,8 +207,6 @@ int main( int argc, char* argv[] )
 	// save a simulation snapshot 
 	
 	char filename[1024];
-	sprintf( filename , "%s/initial" , PhysiCell_settings.folder.c_str() ); 
-	SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo ); 
 	// save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time ); 
 
 
@@ -223,9 +221,10 @@ int main( int argc, char* argv[] )
 
 	// for simplicity, set a pathology coloring function 
 	
-	std::vector<std::string> (*cell_coloring_function)(Cell*) = paint_by_number_cell_coloring; 
+	// std::vector<std::string> (*cell_coloring_function)(Cell*) = paint_by_number_cell_coloring; 
 	// std::string (*ECM_coloring_function)(double, double, double) = my_coloring_function_for_stroma; 
-	// std::vector<std::string> (*cell_coloring_function)(Cell*) = prolif_apoptosis_coloring;
+	std::vector<std::string> (*cell_coloring_function)(Cell*) = prolif_apoptosis_coloring;
+	std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage; 
 	
 	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() ); 
 	SVG_plot_mpi( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function, world, cart_topo );
