@@ -11,10 +11,14 @@ ifdef PHYSICELL_CPP
 	CC := $(PHYSICELL_CPP)
 endif
 
+# prostate model has more than 64 nodes, so we have 
+# to set up this var to the number of nodes
+MABOSS_MAX_NODES = 150
+
 ### MaBoSS configuration 
 # MaBoSS max nodes
 ifndef MABOSS_MAX_NODES
-MABOSS_MAX_NODES = 128
+MABOSS_MAX_NODES = 64
 endif
 
 # MaBoSS directory
@@ -98,7 +102,7 @@ PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o PhysiCell_geo
 
 PhysiBoSS_OBJECTS := maboss_network.o maboss_intracellular.o
 
-PhysiCell_custom_module_OBJECTS := custom.o tnf_boolean_model_interface.o
+PhysiCell_custom_module_OBJECTS := custom.o drug_sensitivity.o boolean_model_interface.o
 
 pugixml_OBJECTS := pugixml.o
 
@@ -242,12 +246,6 @@ maboss_intracellular.o: ./addons/PhysiBoSS/src/maboss_intracellular.cpp
 
 custom.o: ./custom_modules/custom.cpp
 	$(COMPILE_COMMAND) -c ./custom_modules/custom.cpp
-	
-tnf_boolean_model_interface.o: ./custom_modules/tnf_boolean_model_interface.cpp
-	$(COMPILE_COMMAND) -c ./custom_modules/tnf_boolean_model_interface.cpp
-
-tnf_receptor_dynamics.o: ./custom_modules/tnf_receptor_dynamics.cpp
-	$(COMPILE_COMMAND) -c ./custom_modules/tnf_receptor_dynamics.cpp
 
 submodel_data_structures.o: ./custom_modules/submodel_data_structures.cpp
 	$(COMPILE_COMMAND) -c ./custom_modules/submodel_data_structures.cpp
