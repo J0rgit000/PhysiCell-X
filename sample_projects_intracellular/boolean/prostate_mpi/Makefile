@@ -1,5 +1,5 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
-PROGRAM_NAME := alajuela
+PROGRAM_NAME := prostate_mpi
 
 CC := mpic++
 # CC := g++-mp-7 # typical macports compiler name
@@ -11,7 +11,7 @@ ifdef PHYSICELL_CPP
 	CC := $(PHYSICELL_CPP)
 endif
 
-### MaBoSS configuration
+### MaBoSS configuration 
 # MaBoSS max nodes
 ifndef MABOSS_MAX_NODES
 MABOSS_MAX_NODES = 128
@@ -32,7 +32,7 @@ endif
 LIB := -L$(CUR_DIR)/$(MABOSS_DIR)/lib -lMaBoSS-static $(LDL_FLAG)
 INC := -DADDON_PHYSIBOSS -I$(CUR_DIR)/$(MABOSS_DIR)/include -DMAXNODES=$(MABOSS_MAX_NODES)
 
-# If max nodes > 64, change lib path
+# If max nodes > 64, change lib path 
 ifeq ($(shell expr $(MABOSS_MAX_NODES) '>' 64), 1)
 LIB := -L$(CUR_DIR)/$(MABOSS_DIR)/lib -lMaBoSS_$(MABOSS_MAX_NODES)n-static $(LDL_FLAG)
 endif
@@ -66,11 +66,19 @@ ARCH := native # best auto-tuning
 # ARCH := skylake-avx512
 # ARCH := nocona #64-bit pentium 4 or later 
 
+# Without debug symbol
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -m64 -std=c++11 -g -fopenmp -DADDON_PHYSIBOSS -DMECHS_TIME
 
-# Any TU that includes PhysiBoSS headers must see the same MAXNODES value,
-# otherwise inline virtual methods can be emitted with an incompatible layout.
+# Normal compilation with debug symbols
+
+
+# -O1 or -O0 optimization level + debug symbols for Valgrind (DOESN'T WORK)
+# CFLAGS := -march=$(ARCH) -O1 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11 -g
+
+# -O1 or -O0 optimization level + WITHOUT OpenMP + debug symbols for Valgrind + WITHOUT -march=native (WORKS)
+# CFLAGS := -O1 -fomit-frame-pointer -mfpmath=both -m64 -std=c++11 -g
+
 COMPILE_COMMAND := $(CC) $(CFLAGS) $(INC)
 
 DistPhy_OBJECTS:= DistPhy_Environment.o DistPhy_Cartesian.o DistPhy_Utils.o DistPhy_Collective.o
@@ -86,7 +94,7 @@ PhysiCell_standard_models_mpi.o
 PhysiCell_module_OBJECTS :=  PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o \
 PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o PhysiCell_geometry.o
 
-# put your custom objects here (they should be in the custom_modules directory)
+# put your custom objects here (they should be in the custom_modules directory)  
 
 PhysiBoSS_OBJECTS := maboss_network.o maboss_intracellular.o
 
@@ -97,7 +105,7 @@ pugixml_OBJECTS := pugixml.o
 PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJECTS) $(PhysiCell_module_OBJECTS) $(DistPhy_OBJECTS)
 ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS) $(PhysiBoSS_OBJECTS)
 
-# compile the project  
+# compile the project 
 name:
 	@echo "\n\nExecutable name is " $(PROGRAM_NAME) " \n"
 	
@@ -238,6 +246,12 @@ custom.o: ./custom_modules/custom.cpp
 tnf_boolean_model_interface.o: ./custom_modules/tnf_boolean_model_interface.cpp
 	$(COMPILE_COMMAND) -c ./custom_modules/tnf_boolean_model_interface.cpp
 
+tnf_receptor_dynamics.o: ./custom_modules/tnf_receptor_dynamics.cpp
+	$(COMPILE_COMMAND) -c ./custom_modules/tnf_receptor_dynamics.cpp
+
+submodel_data_structures.o: ./custom_modules/submodel_data_structures.cpp
+	$(COMPILE_COMMAND) -c ./custom_modules/submodel_data_structures.cpp
+
 # cleanup
 
 reset:
@@ -248,8 +262,17 @@ reset:
 	touch ALL_CITATIONS.txt 
 	rm ALL_CITATIONS.txt 
 	cp ./config/PhysiCell_settings-backup.xml ./config/PhysiCell_settings.xml 
+	rm -f ./config/init.txt
+	rm -f ./config/TNF_conf.cfg
+	rm -f ./config/TNF_nodes.bnd
+	rm -fr ./scripts
+	rm -f ./Instructions_prostate.md
+
+MaBoSS-clean:
+	rm -fr addons/PhysiBoSS/MaBoSS-env-2.0
 	
 clean:
+	# MaBoSS-clean
 	rm -f *.o
 	rm -f $(PROGRAM_NAME)*
 	
@@ -261,10 +284,10 @@ data-cleanup:
 	touch ./output/empty.txt
 	
 # archival 
-	
+
 checkpoint: 
 	zip -r $$(date +%b_%d_%Y_%H%M).zip Makefile *.cpp *.h config/*.xml custom_modules/* 
-	
+
 zip:
 	zip -r latest.zip Makefile* *.cpp *.h BioFVM/* config/* core/* custom_modules/* matlab/* modules/* sample_projects/* 
 	cp latest.zip $$(date +%b_%d_%Y_%H%M).zip

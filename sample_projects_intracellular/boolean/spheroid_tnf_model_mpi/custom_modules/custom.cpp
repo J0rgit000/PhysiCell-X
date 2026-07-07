@@ -446,36 +446,6 @@ void setup_tissue(Microenvironment &m, mpi_Environment &world, mpi_Cartesian &ca
 
 }
 
-std::vector<std::vector<double>> create_cell_sphere_positions(double cell_radius, double sphere_radius)
-{
-    std::vector<std::vector<double>> cells;
-    int xc=0,yc=0,zc=0;
-    double x_spacing= cell_radius*sqrt(3);
-    double y_spacing= cell_radius*2;
-    double z_spacing= cell_radius*sqrt(3);
-
-    std::vector<double> tempPoint(3,0.0);
-    // std::vector<double> cylinder_center(3,0.0);
-
-    for(double z=-sphere_radius;z<sphere_radius;z+=z_spacing, zc++)
-    {
-        for(double x=-sphere_radius;x<sphere_radius;x+=x_spacing, xc++)
-        {
-            for(double y=-sphere_radius;y<sphere_radius;y+=y_spacing, yc++)
-            {
-                tempPoint[0]=x + (zc%2) * 0.5 * cell_radius;
-                tempPoint[1]=y + (xc%2) * cell_radius;
-                tempPoint[2]=z;
-
-                if(sqrt(norm_squared(tempPoint))< sphere_radius)
-                { cells.push_back(tempPoint); }
-            }
-
-        }
-    }
-    return cells;
-}
-
 // Function to read init files created with PhysiBoSSv2
 std::vector<init_record> read_init_file(std::string filename, char delimiter, bool header)
 {

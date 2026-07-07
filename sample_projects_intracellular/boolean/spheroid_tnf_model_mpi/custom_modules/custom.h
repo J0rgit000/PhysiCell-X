@@ -98,7 +98,6 @@ struct init_record
 
 // setup functions to help us along 
 void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo );
-void setup_tissue( void );
 
 /*======================================*/
 /* Parallel prototype of setup_tissue() */
