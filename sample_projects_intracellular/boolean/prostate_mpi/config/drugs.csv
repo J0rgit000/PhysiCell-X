@@ -1,0 +1,12 @@
+drug_name,node,drug_id
+Ipatasertib,AKT,1924
+Afuresertib,AKT,1912
+Afatinib,EGFR,1032
+Erlotinib,EGFR,1168
+Ulixertinib,ERK,2047
+Luminespib,HSPs,1559
+Trametinib,MEK1_2,1372
+Selumetinib,MEK1_2,1736
+Pictilisib,PI3K,1058
+Alpelisib,PI3K,1560
+BIBR1532,TERT,2043

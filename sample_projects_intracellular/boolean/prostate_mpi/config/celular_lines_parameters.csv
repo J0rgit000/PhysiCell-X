@@ -1,0 +1,9 @@
+cell_line_id,cell_cycle_rate,transition_rate_multiplier,migration_speed,persistance
+22Rv1,0.000315,2,0.35,2
+BPH1,0.00033,2,0.35,2
+DU145,0.000551,2,0.35,2
+LNCaP,0.0003155,2,0.35,2
+NCIH660,0.000245,2,0.7,5
+PC3,0.0005269,2,0.35,2
+PWR1E,0.00072,15,0.7,50
+VCap,0.000235,2,0.35,2
