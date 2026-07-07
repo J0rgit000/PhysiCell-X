@@ -247,8 +247,11 @@ maboss_intracellular.o: ./addons/PhysiBoSS/src/maboss_intracellular.cpp
 custom.o: ./custom_modules/custom.cpp
 	$(COMPILE_COMMAND) -c ./custom_modules/custom.cpp
 
-submodel_data_structures.o: ./custom_modules/submodel_data_structures.cpp
-	$(COMPILE_COMMAND) -c ./custom_modules/submodel_data_structures.cpp
+drug_sensitivity.o: ./custom_modules/drug_sensitivity.cpp
+	$(COMPILE_COMMAND) -c ./custom_modules/drug_sensitivity.cpp
+
+boolean_model_interface.o: ./custom_modules/boolean_model_interface.cpp
+	$(COMPILE_COMMAND) -c ./custom_modules/boolean_model_interface.cpp
 
 # cleanup
 
