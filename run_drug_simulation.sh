@@ -1,1 +1,0 @@
-./prostate_mpi config/single/22Rv1_IC10_Ipatasertib_0_0_1.xml

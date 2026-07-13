@@ -291,6 +291,7 @@ data-cleanup:
 	rm -f *.svg
 	rm -f ./output/*
 	touch ./output/empty.txt
+	rm -f *.sh
 	
 # archival 
 
