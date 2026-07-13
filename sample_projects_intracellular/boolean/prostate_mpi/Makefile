@@ -13,7 +13,7 @@ endif
 
 # prostate model has more than 64 nodes, so we have 
 # to set up this var to the number of nodes
-MABOSS_MAX_NODES = 150
+MABOSS_MAX_NODES = 256
 
 ### MaBoSS configuration 
 # MaBoSS max nodes
@@ -33,12 +33,12 @@ ifeq ($(shell uname -s),Linux)
 	LINK_FLAGS := -no-pie
 endif
 
-LIB := -L$(CUR_DIR)/$(MABOSS_DIR)/lib -lMaBoSS-static $(LDL_FLAG)
-INC := -DADDON_PHYSIBOSS -I$(CUR_DIR)/$(MABOSS_DIR)/include -DMAXNODES=$(MABOSS_MAX_NODES)
+LIB := -L"$(CUR_DIR)/$(MABOSS_DIR)/lib" -lMaBoSS-static $(LDL_FLAG)
+INC := -DADDON_PHYSIBOSS -I"$(CUR_DIR)/$(MABOSS_DIR)/include" -DMAXNODES=$(MABOSS_MAX_NODES)
 
 # If max nodes > 64, change lib path 
 ifeq ($(shell expr $(MABOSS_MAX_NODES) '>' 64), 1)
-LIB := -L$(CUR_DIR)/$(MABOSS_DIR)/lib -lMaBoSS_$(MABOSS_MAX_NODES)n-static $(LDL_FLAG)
+LIB := -L"$(CUR_DIR)/$(MABOSS_DIR)/lib" -lMaBoSS_$(MABOSS_MAX_NODES)n-static $(LDL_FLAG)
 endif
 
 USE_JEMALLOC ?= 0
@@ -73,7 +73,8 @@ ARCH := native # best auto-tuning
 # Without debug symbol
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -m64 -std=c++11 -g -fopenmp -DADDON_PHYSIBOSS -DMECHS_TIME
-
+# debug:
+# CFLAGS := -march=$(ARCH) -O0 -ggdb -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 # Normal compilation with debug symbols
 
 
@@ -95,7 +96,7 @@ PhysiCell_custom.o PhysiCell_utilities.o PhysiCell_constants.o PhysiCell_cell_mp
 PhysiCell_rules.o PhysiCell_basic_signaling.o PhysiCell_cell_container_mechanics.o \
 PhysiCell_standard_models_mpi.o 
 
-PhysiCell_module_OBJECTS :=  PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o \
+PhysiCell_module_OBJECTS := PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o \
 PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_pathology_SVG.o PhysiCell_geometry.o
 
 # put your custom objects here (they should be in the custom_modules directory)  
@@ -110,13 +111,15 @@ PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJE
 ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS) $(PhysiBoSS_OBJECTS)
 
 # compile the project 
-name:
-	@echo "\n\nExecutable name is " $(PROGRAM_NAME) " \n"
-	
+
 all: MaBoSS main.cpp $(ALL_OBJECTS)
 	$(COMPILE_COMMAND) $(LINK_FLAGS) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp $(LIB)
+name:
+	@echo ""
+	@echo "Executable name is" $(PROGRAM_NAME)
+	@echo ""
 
-# PhysiCell core components	
+# DistPhy core components
 DistPhy_Environment.o: ./DistPhy/DistPhy_Environment.cpp
 	$(COMPILE_COMMAND) -c ./DistPhy/DistPhy_Environment.cpp
 
@@ -128,6 +131,8 @@ DistPhy_Utils.o: ./DistPhy/DistPhy_Utils.cpp
 	
 DistPhy_Collective.o: ./DistPhy/DistPhy_Collective.cpp
 	$(COMPILE_COMMAND) -c ./DistPhy/DistPhy_Collective.cpp
+
+# PhysiCell core components	
 
 PhysiCell_phenotype.o: ./core/PhysiCell_phenotype.cpp
 	$(COMPILE_COMMAND) -c ./core/PhysiCell_phenotype.cpp
@@ -238,11 +243,14 @@ else
 	python3 addons/PhysiBoSS/setup_libmaboss.py
 endif
 
+maboss_intracellular.o: ./addons/PhysiBoSS/src/maboss_intracellular.cpp
+	$(COMPILE_COMMAND) -c ./addons/PhysiBoSS/src/maboss_intracellular.cpp
+
 maboss_network.o: ./addons/PhysiBoSS/src/maboss_network.cpp
 	$(COMPILE_COMMAND) -c ./addons/PhysiBoSS/src/maboss_network.cpp
 
-maboss_intracellular.o: ./addons/PhysiBoSS/src/maboss_intracellular.cpp
-	$(COMPILE_COMMAND) -c ./addons/PhysiBoSS/src/maboss_intracellular.cpp
+utils.o: ./addons/PhysiBoSS/src/utils.cpp #$(MaBoSS) 
+	$(COMPILE_COMMAND) $(INC) -c ./addons/PhysiBoSS/src/utils.cpp
 
 custom.o: ./custom_modules/custom.cpp
 	$(COMPILE_COMMAND) -c ./custom_modules/custom.cpp

@@ -68,20 +68,24 @@
 #define __Custom_h__
 
 #include "../core/PhysiCell.h"
-#include "../modules/PhysiCell_standard_modules.h" 
+#include "../modules/PhysiCell_standard_modules.h"
+#include "../DistPhy/DistPhy_Collective.h"
+#include "drug_sensitivity.h"
+#include "boolean_model_interface.h"
 
 using namespace BioFVM; 
 using namespace PhysiCell;
 
 // setup functions to help us along 
+bool is_necrotic_phase(const Cell* pCell);
 void create_cell_types( mpi_Environment &world, mpi_Cartesian &cart_topo );
-
+double get_decay_rate(double half_life); // Funcion en la versión lineal, mirar si hace falta paralelización
 /*======================================*/
 /* Parallel prototype of setup_tissue() */
 /*======================================*/
 
 void setup_tissue(Microenvironment & microenvironment, mpi_Environment &world, mpi_Cartesian &cart_topo);
-
+// void setup_tissue_resistant( void ); // Funcion en la versión lineal, mirar si hace falta paralelización. Dice que es antigua
 // custom pathology coloring function 
 
 /*================================================*/
@@ -90,19 +94,38 @@ void setup_tissue(Microenvironment & microenvironment, mpi_Environment &world, m
 
 void setup_microenvironment( mpi_Environment &world, mpi_Cartesian &cart_topo);
 
+ // Funciones seriales, hay que mirarlas para ver si hace falta paralelización
+// void phenotype_function( Cell* pCell, Phenotype& phenotype, double dt ); Funciones sin ningún tipo contenido.
+// void custom_function( Cell* pCell, Phenotype& phenotype , double dt );
+// void contact_function( Cell* pMe, Phenotype& phenoMe , Cell* pOther, Phenotype& phenoOther , double dt ); 
+void treatment_function ();
+
 std::vector<std::string> my_coloring_function( Cell* );
 std::vector<std::string> prolif_apoptosis_coloring( Cell* pCell );
 
 // custom cell phenotype functions could go here 
-//void tumor_cell_phenotype_with_signaling( Cell* pCell, Phenotype& phenotype, double dt , mpi_Environment &world, mpi_Cartesian &cart_topo);
+void tumor_cell_phenotype_with_signaling( Cell* pCell, Phenotype& phenotype, double dt , mpi_Environment &world, mpi_Cartesian &cart_topo);
 /** \brief Write Density values to output file */
 //void set_input_nodes(Cell* pCell); 
 //void from_nodes_to_cell(Cell* pCell, Phenotype& phenotype, double dt);
+//  needed for setup_tissue_resistant
+struct init_record
+{
+	float x;
+	float y;
+	float z;
+	float radius;
+	int phase;
+	double elapsed_time;
+};
 
+// custom pathology coloring function 
+std::vector<std::string> prolif_apoptosis_coloring( Cell* pCell );
 // custom cell phenotype functions could go here 
-void pre_update_intracellular( Cell* pCell, Phenotype& phenotype, double dt );
-void post_update_intracellular( Cell* pCell, Phenotype& phenotype, double dt );
-void color_node(Cell* pCell);
+// void pre_update_intracellular( Cell* pCell, Phenotype& phenotype, double dt );
+// void post_update_intracellular( Cell* pCell, Phenotype& phenotype, double dt );
+// void color_node(Cell* pCell); Funciones comentadas por no estar en la parte serial
+inline float sphere_volume_from_radius(float radius) {return 4/3 * PhysiCell_constants::pi * std::pow(radius, 3);}
 
 
 int total_basic_agent_count(mpi_Environment &world, mpi_Cartesian &cart_topo);
