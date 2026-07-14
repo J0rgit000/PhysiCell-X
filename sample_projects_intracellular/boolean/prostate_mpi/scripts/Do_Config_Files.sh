@@ -42,5 +42,5 @@ do
     PARTIAL_PATH="config/${ARCHIVO_TEMP#*/config/}"
     
     # Append the clean path to the runner script
-    echo "./$SIMULADOR $PARTIAL_PATH" >> "$FILENAME"
+    echo "./$SIMULADOR $PARTIAL_PATH > ${NEW_PATH}/log.txt" >> "$FILENAME"
 done

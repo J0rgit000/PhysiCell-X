@@ -289,7 +289,7 @@ data-cleanup:
 	rm -f *.mat
 	rm -f *.xml
 	rm -f *.svg
-	rm -f ./output/*
+	rm -rf ./output/*
 	touch ./output/empty.txt
 	rm -f *.sh
 	

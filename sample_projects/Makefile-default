@@ -66,7 +66,7 @@ list-projects:
 	@echo "                 cancer-immune-sample virus-macrophage-sample pred-prey-mpi pred-prey-farmer"
 	@echo ""
 	@echo "Sample intracellular projects: ode-energy-sample physiboss-cell-lines-sample cancer-metabolism-sample"
-	@echo "physiboss-cell-lines-mpi physiboss-tnf-model physiboss-tnf-model-mpi"
+	@echo "physiboss-cell-lines-mpi physiboss-tnf-model physiboss-tnf-model-mpi prostate-mpi"
 	@echo ""
 	
 # ---- non-intracellular projects 	
@@ -225,6 +225,7 @@ cancer-metabolism-sample:
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/Makefile ./
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml
 	cp ./sample_projects_intracellular/fba/cancer_metabolism/config/* ./config/
+
 test-case-mpi:
 	cp ./sample_projects/test_case/custom_modules/* ./custom_modules/
 	touch main.cpp && cp main.cpp main-backup.cpp
@@ -232,7 +233,19 @@ test-case-mpi:
 	cp Makefile Makefile-backup
 	cp ./sample_projects/test_case/Makefile .
 	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
-	cp ./sample_projects/test_case/config/* ./config/	
+	cp ./sample_projects/test_case/config/* ./config/
+
+prostate-mpi:
+	cp ./sample_projects_intracellular/boolean/prostate_mpi/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects_intracellular/boolean/prostate_mpi/main-prostate_mpi.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects_intracellular/boolean/prostate_mpi/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp -r ./sample_projects_intracellular/boolean/prostate_mpi/config/* ./config/
+	mkdir ./scripts/
+	cp ./sample_projects_intracellular/boolean/prostate_mpi/scripts/* ./scripts/
+	cp ./sample_projects_intracellular/boolean/prostate_mpi/Instructions_prostate.md .
 # early examples for convergence testing 
 
 physicell_test_mech1: $(PhysiCell_OBJECTS) ./examples/PhysiCell_test_mechanics_1.cpp 

@@ -403,7 +403,7 @@ print(mode + " drug simulations will be set up.")
 simulation_list = []
 if (mode == "single" or mode == "double"):
     if os.path.exists("config/{}".format(mode)):
-        shutill.rmtree("config/{}".format(mode))    
+        shutil.rmtree("config/{}".format(mode))    
     os.makedirs("config/{}".format(mode))
     setup_drug_simulations(drug_list, node_list, bool_model_filename, bool_model, drug_rest_name_list, drug_concs, mode, simulation_list, drugslist_csv)
 elif (mode == "both"):
