@@ -23,9 +23,11 @@ EXTENSION="${ARCHIVO_ORIGEN##*.}"
 
 echo "Preparing '$MAX_SIMS' simulations for '$ARCHIVO_ORIGEN'..."
 
+: > "$FILENAME"
+
 for i in $(seq 1 "$MAX_SIMS")
 do
-    NAME_ARCHIVO="${NOMBRE_BASE}_$i"
+    NAME_ARCHIVO="${NOMBRE_BASE/PhysiCell_settings_/}_$i"
     ARCHIVO_TEMP="${NOMBRE_BASE}_$i.${EXTENSION}"
     
     cp "$ARCHIVO_ORIGEN" "$ARCHIVO_TEMP"

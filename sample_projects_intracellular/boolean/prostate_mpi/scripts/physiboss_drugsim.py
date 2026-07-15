@@ -384,7 +384,7 @@ def setup_drug_simulations(druglist, nodelist, bool_model_name, bool_model, rest
 
                 # modify the .xml file for the current drug configuration
                 xml_path = "{}/{}_{}.{}".format("config", "PhysiCell_settings", cell_line, "xml")
-                new_xml_output_path = "{}/{}/{}_{}_{}_{}.{}".format("config", mode, cell_line, filtered_drug_conc.replace(",", "_"), filtered_drugname.replace(",","_"), filtered_rest.replace(",","_"), "xml")
+                new_xml_output_path = "{}/{}/PhysiCell_settings_{}_{}_{}_{}.{}".format("config", mode, cell_line, filtered_drug_conc.replace(",", "_"), filtered_drugname.replace(",","_"), filtered_rest.replace(",","_"), "xml")
 
                 if (type(drug) is tuple):
                     # for the tuples the first two elements of node and rest belong together

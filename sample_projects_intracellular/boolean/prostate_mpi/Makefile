@@ -276,6 +276,7 @@ reset:
 	rm -f ./config/TNF_nodes.bnd
 	rm -fr ./scripts
 	rm -f ./Instructions_prostate.md
+	rm -f *.sh
 
 MaBoSS-clean:
 	rm -fr addons/PhysiBoSS/MaBoSS-env-2.0

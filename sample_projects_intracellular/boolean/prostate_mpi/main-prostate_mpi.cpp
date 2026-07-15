@@ -332,8 +332,16 @@ int main( int argc, char* argv[] )
 	
 	// timer 
 	
-	std::cout << std::endl << "Total simulation runtime: " << std::endl; 
-	BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() ); 
+	if (IOProcessor(world)) {
+		std::cout << std::endl << "Total simulation runtime: " << std::endl; 
+		BioFVM::display_stopwatch_value( std::cout , BioFVM::runtime_stopwatch_value() ); 
+	}
+
+/*================*/
+/* Finalize() MPI */
+/*================*/
+
+    world.Finalize(); 
 
 	return 0; 
 }
