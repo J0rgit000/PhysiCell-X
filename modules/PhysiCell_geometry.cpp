@@ -1112,7 +1112,7 @@ bool load_cells_from_pugixml( mpi_Environment &world, mpi_Cartesian &cart_topo, 
 		return false;
 	}
 
-	node = node.child( "cell_positions" ); 
+	node = node.child( "cell_positions" );
 	if( !node )
 	{
 		if (IOProcessor(world))

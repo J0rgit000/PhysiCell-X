@@ -40,9 +40,11 @@ def update_xml_config(template_xml, target_id, csv_file):
 
     # --- DYNAMIC UPDATES (Derived from ID) ---
     # Update folder to 'output/ID'
-    for folder in root.iter('folder'):
+    #Find the first occurence of "folder" (should be the save one) and change it to "output/ID"
+    folder = root.find('.//folder')
+    if folder is not None:
         folder.text = f"output_{target_id}"
-    
+           
     # Update cell_line name
     for cl in root.iter('cell_line'):
         cl.text = target_id

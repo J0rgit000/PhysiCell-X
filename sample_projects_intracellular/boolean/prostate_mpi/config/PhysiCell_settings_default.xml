@@ -217,6 +217,13 @@
 		</cell_definition>
 	</cell_definitions>
 
+	<initial_conditions>
+        <cell_positions type="csv" enabled="true">
+            <folder>./config</folder>
+            <filename>init.csv</filename>
+        </cell_positions>
+    </initial_conditions>
+
 	<user_parameters>
 		<random_seed type="int" units="dimensionless">0</random_seed> 
 		<!-- motility parameters --> 
@@ -236,7 +243,6 @@
 		<bnd_file type="string" units="">./config/boolean_network/22Rv1_mut_RNA_00.bnd</bnd_file>
 		<cfg_file type="string" units="">./config/boolean_network/22Rv1_mut_RNA_00.cfg</cfg_file>
 		<maboss_time_step type="double" units="dimensionless">10.</maboss_time_step>
-		<init_cells_filename type="string" units="">./config/cells.csv</init_cells_filename>
 
 		<simulation_mode type="int">-1</simulation_mode>
 

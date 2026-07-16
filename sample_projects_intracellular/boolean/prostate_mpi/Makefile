@@ -269,8 +269,10 @@ reset:
 	rm -f ./custom_modules/*
 	touch ./custom_modules/empty.txt 
 	touch ALL_CITATIONS.txt 
-	rm ALL_CITATIONS.txt 
-	cp ./config/PhysiCell_settings-backup.xml ./config/PhysiCell_settings.xml 
+	rm ALL_CITATIONS.txt
+	find ./config/. ! -name "PhysiCell_settings-backup.xml" -type f -exec rm -f {} +
+	find ./config/. ! -name . -type d -exec rm -r {} +
+	cp ./config/PhysiCell_settings-backup.xml ./config/PhysiCell_settings.xml
 	rm -f ./config/init.txt
 	rm -f ./config/TNF_conf.cfg
 	rm -f ./config/TNF_nodes.bnd
